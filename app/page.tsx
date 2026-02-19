@@ -1,65 +1,109 @@
-import Image from "next/image";
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col min-h-screen bg-[#f5f7fb]">
+      {/* HEADER */}
+      <header className="top-bar flex items-center gap-4 px-8 py-4 bg-[#0b3c6d] text-white">
+        <div className="logo w-12 h-12 bg-white text-[#0b3c6d] font-bold rounded-lg flex items-center justify-center">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="#0b3c6d">
+            <path d="M9 2a3 3 0 00-3 3v1a3 3 0 000 6v1a3 3 0 003 3h1v-2H9a1 1 0 01-1-1v-2H7a1 1 0 010-2h1V6a1 1 0 011-1h2V3a1 1 0 00-1-1H9zm6 0a3 3 0 00-1 5v2h1a1 1 0 010 2h-1v2a1 1 0 01-1 1h-1v2h1a3 3 0 003-3v-1a3 3 0 000-6V5a3 3 0 00-1-3z" />
+          </svg>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div>
+          <h1 className="text-2xl m-0">Headache Registry</h1>
+          <p className="text-sm opacity-90 m-0">Clinical Data & Patient Management Portal</p>
         </div>
-      </main>
+      </header>
+
+      {/* DASHBOARD HEADER */}
+      <div className="dashboard-header max-w-[1200px] mx-auto mt-6 mb-2.5 px-6 w-full">
+        <h2 className="text-3xl font-bold m-0 mb-1.5 text-slate-800">Registry Dashboard</h2>
+      </div>
+
+      {/* DASHBOARD CARDS */}
+      <div className="cards-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1200px] mx-auto mt-4 px-6 w-full">
+        <Link href="/enroll" className="card yellow bg-linear-to-br from-[#acefde] to-[#ffbb70] p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Enrollment of new patients
+        </Link>
+
+        {/* Placeholder cards */}
+        <div className="card green bg-linear-to-br from-[#a8e063] to-[#4c7a45] p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Patient experience
+        </div>
+
+        <div className="card red bg-linear-to-br from-[#ff416c] to-[#ff4b2b] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Link to patient tab (excel and coding)
+        </div>
+
+        <div className="card pink bg-linear-to-br from-[#ff9a9e] to-[#fad0c4] p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          COMBAT diagnostic algorithm
+        </div>
+
+        <div className="card magenta bg-linear-to-br from-[#f4e900] to-[#fc506e] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Audit tab
+        </div>
+
+        <div className="card grey bg-linear-to-br from-[#a8f368] to-[#f9035e] p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Graphs and trends
+        </div>
+
+        <div className="card slate bg-linear-to-br from-[#008bff] to-[#008ffa] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Patient information Tab
+        </div>
+
+        <div className="card purple bg-linear-to-br from-[#8e2de2] to-[#4a00e0] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+          Online migraine parameter recording
+        </div>
+      </div>
+
+      {/* CLINICAL SNAPSHOT */}
+      <section className="clinical-snapshot max-w-[1200px] mx-auto mt-12 mb-12 p-7 rounded-2xl bg-linear-to-br from-white to-[#f5f8ff] shadow-xl w-full px-6">
+        <h3 className="text-xl font-bold mb-1">Clinical Snapshot</h3>
+        <p className="snapshot-subtitle text-sm text-slate-500 mb-7">Visual overview of headache severity</p>
+
+        <div className="test-tube-container flex justify-center items-end gap-14 flex-wrap mt-8">
+
+          {/* Tube 1 */}
+          <div className="tube-card w-[140px] text-center">
+            <div className="tube relative h-[220px] w-[60px] mx-auto mb-3.5 bg-gray-200 rounded-b-[30px] overflow-hidden shadow-[inset_0_0_0_4px_#cbd5e1]">
+              <div className="liquid vas absolute bottom-0 w-full rounded-b-[26px] animate-[fillUp_1.4s_ease-out_forwards] h-[68%] bg-linear-to-b from-[#ff9800] to-[#ff5722]"></div>
+            </div>
+            <div className="tube-label">
+              <strong className="block text-sm font-semibold">VAS Score</strong>
+              <span className="text-xs text-slate-600">6.8 / 10</span>
+            </div>
+          </div>
+
+          {/* Tube 2 */}
+          <div className="tube-card w-[140px] text-center">
+            <div className="tube relative h-[220px] w-[60px] mx-auto mb-3.5 bg-gray-200 rounded-b-[30px] overflow-hidden shadow-[inset_0_0_0_4px_#cbd5e1]">
+              <div className="liquid frequency absolute bottom-0 w-full rounded-b-[26px] animate-[fillUp_1.4s_ease-out_forwards] h-[55%] bg-linear-to-b from-[#4caf50] to-[#2e7d32]"></div>
+            </div>
+            <div className="tube-label">
+              <strong className="block text-sm font-semibold">Monthly Frequency</strong>
+              <span className="text-xs text-slate-600">14 days</span>
+            </div>
+          </div>
+
+          {/* Tube 3 */}
+          <div className="tube-card w-[140px] text-center">
+            <div className="tube relative h-[220px] w-[60px] mx-auto mb-3.5 bg-gray-200 rounded-b-[30px] overflow-hidden shadow-[inset_0_0_0_4px_#cbd5e1]">
+              <div className="liquid migraine absolute bottom-0 w-full rounded-b-[26px] animate-[fillUp_1.4s_ease-out_forwards] h-[62%] bg-linear-to-b from-[#3f51b5] to-[#673ab7]"></div>
+            </div>
+            <div className="tube-label">
+              <strong className="block text-sm font-semibold">Migraine Burden</strong>
+              <span className="text-xs text-slate-600">62%</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <footer className="p-4 text-center text-xs text-[#666] mt-auto">
+        ©️ Headache Registry Project
+      </footer>
     </div>
   );
 }
