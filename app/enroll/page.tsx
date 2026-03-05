@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,7 +346,7 @@ interface SuperSectionProps {
   defaultOpen?: boolean;
 }
 
-const SuperSection = ({ title, children, defaultOpen = false }: SuperSectionProps) => {
+const SuperSection = ({ title, children, defaultOpen = true }: SuperSectionProps) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-gray-300 rounded-lg mb-4 overflow-hidden">
@@ -364,14 +367,130 @@ const FormSection = ({ children }: { children: React.ReactNode }) => (
   <div className="border border-gray-200 rounded-md p-4 bg-gray-50">{children}</div>
 );
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Main Component (inner — uses useSearchParams) ───────────────────────────
 
-export default function HeadacheRegistryForm() {
+function HeadacheRegistryFormContent() {
   const [formData, setFormData] = useState<FormData>(initialState);
   const [submitted, setSubmitted] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  // When non-null, we're editing an existing patient (holds their Mongo _id)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // Controlled input for the "Load Patient" search bar
+  const [lookupId, setLookupId] = useState("");
 
-  // Generic field handlers
+  // Read ?id= from URL and auto-load on mount
+  const searchParams = useSearchParams();
+  const urlPatientId = searchParams.get("id");
+
+  const fetchPatient = useCallback(async (id: string) => {
+    if (!id.trim()) return;
+    setIsLoading(true);
+    setStatusMsg("");
+    try {
+      const res = await fetch(`/api/enroll/${id.trim()}`);
+      const result = await res.json();
+      if (result.success) {
+        const p = result.data;
+        setFormData({
+          ...initialState,
+          ...Object.fromEntries(
+            Object.keys(initialState)
+              .filter((k) => k in p && typeof p[k] !== 'object')
+              .map((k) => [k, p[k] ?? initialState[k as keyof FormData]])
+          ),
+          pain_sites: p.pain_sites ?? [],
+          pain_character: p.pain_character ?? [],
+          associated_symptoms: p.associated_symptoms ?? [],
+          aura_type: p.aura_type ?? [],
+          prodrome_symptoms: p.prodrome_symptoms ?? [],
+          postdrome_symptoms: p.postdrome_symptoms ?? [],
+          triggers: p.triggers ?? [],
+          past_medical_history: p.past_medical_history ?? [],
+          investigations: p.investigations ?? [],
+          diagnosis: p.diagnosis ?? [],
+          eyelid_edema: p.autonomic_symptoms?.eyelid_edema ?? "",
+          lacrimation: p.autonomic_symptoms?.lacrimation ?? "",
+          conjunctival_injection: p.autonomic_symptoms?.conjunctival_injection ?? "",
+          nasal_congestion: p.autonomic_symptoms?.nasal_congestion ?? "",
+          rhinorrhea: p.autonomic_symptoms?.rhinorrhea ?? "",
+          facial_sweating: p.autonomic_symptoms?.facial_sweating ?? "",
+          lid_droop: p.autonomic_symptoms?.lid_droop ?? "",
+          aural_fullness: p.autonomic_symptoms?.aural_fullness ?? "",
+          rf_onset_thunderclap: p.red_flags?.onset_thunderclap ?? false,
+          rf_onset_progressive: p.red_flags?.onset_progressive ?? false,
+          rf_onset_after_50: p.red_flags?.onset_after_50 ?? false,
+          rf_onset_pregnancy: p.red_flags?.onset_pregnancy ?? false,
+          rf_worst_headache: p.red_flags?.worst_headache ?? false,
+          rf_freq_increase: p.red_flags?.freq_increase ?? false,
+          rf_severity_increase: p.red_flags?.severity_increase ?? false,
+          rf_exertion_trigger: p.red_flags?.exertion_trigger ?? false,
+          rf_sexual_activity: p.red_flags?.sexual_activity ?? false,
+          rf_fever: p.red_flags?.fever ?? false,
+          rf_seizure: p.red_flags?.seizure ?? false,
+          rf_neurological_deficit: p.red_flags?.neurological_deficit ?? false,
+          rf_neck_stiffness: p.red_flags?.neck_stiffness ?? false,
+          rf_post_trauma: p.red_flags?.post_trauma ?? false,
+          rf_prior_investigation: p.red_flags?.prior_investigation ?? false,
+          rf_systemic_illness: p.red_flags?.systemic_illness ?? false,
+          rf_weight_gain: p.red_flags?.weight_gain ?? false,
+          rf_tinnitus_tvo: p.red_flags?.tinnitus_tvo ?? false,
+          rf_none: p.red_flags?.none ?? false,
+          ge_pallor: p.general_findings?.pallor ?? false,
+          ge_icterus: p.general_findings?.icterus ?? false,
+          ge_cyanosis: p.general_findings?.cyanosis ?? false,
+          ge_clubbing: p.general_findings?.clubbing ?? false,
+          ge_pedal_edema: p.general_findings?.pedal_edema ?? false,
+          ge_lymphadenopathy: p.general_findings?.lymphadenopathy ?? false,
+          ge_raised_jvp: p.general_findings?.raised_jvp ?? false,
+          ge_skin_markers: p.general_findings?.skin_markers ?? false,
+          ge_none: p.general_findings?.none ?? false,
+          acute_drug_group: p.acute_meds?.[0]?.drug_group ?? "",
+          acute_drug_name_route: p.acute_meds?.[0]?.drug_name_route ?? "",
+          acute_time_started: p.acute_meds?.[0]?.time_started ?? "",
+          acute_starting_dose: p.acute_meds?.[0]?.starting_dose ?? "",
+          acute_final_dose: p.acute_meds?.[0]?.final_dose ?? "",
+          acute_adverse_effects: p.acute_meds?.[0]?.adverse_effects ?? "",
+          acute_tolerance: p.acute_meds?.[0]?.tolerance ?? "",
+          acute_days_per_month: p.acute_meds?.[0]?.days_per_month?.toString() ?? "",
+          acute_effectiveness: p.acute_meds?.[0]?.effectiveness ?? "",
+          preventive_drug_group: p.preventive_meds?.[0]?.drug_group ?? "",
+          preventive_drug_name_route: p.preventive_meds?.[0]?.drug_name_route ?? "",
+          preventive_time_started: p.preventive_meds?.[0]?.time_started ?? "",
+          preventive_starting_dose: p.preventive_meds?.[0]?.starting_dose ?? "",
+          preventive_final_dose: p.preventive_meds?.[0]?.final_dose ?? "",
+          preventive_adverse_effects: p.preventive_meds?.[0]?.adverse_effects ?? "",
+          preventive_tolerance: p.preventive_meds?.[0]?.tolerance ?? "",
+          preventive_days_per_month: p.preventive_meds?.[0]?.days_per_month?.toString() ?? "",
+          preventive_effectiveness: p.preventive_meds?.[0]?.effectiveness ?? "",
+          date_of_first_assessment: p.date_of_first_assessment
+            ? new Date(p.date_of_first_assessment).toISOString().split('T')[0]
+            : "",
+          dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : "",
+        });
+        setEditingId(id.trim());
+        setLookupId(id.trim());
+        setSubmitted(false);
+        setStatusMsg(`Loaded patient: ${p.patient_name || id.trim()}`);
+      } else {
+        setStatusMsg(`Patient not found: ${result.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusMsg("Error loading patient. Check the ID and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-load when navigated here with ?id=
+  useEffect(() => {
+    if (urlPatientId) {
+      fetchPatient(urlPatientId);
+    }
+  }, [urlPatientId, fetchPatient]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -394,17 +513,114 @@ export default function HeadacheRegistryForm() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ── Fetch a patient by ID and pre-fill the form (manual load bar) ──────────
+  const fetchPatientManual = (id: string) => fetchPatient(id);
+
+  // Generic field handlers
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    setSubmitted(true);
-    setStatusMsg("Form submitted successfully!");
+    setIsLoading(true);
+    setStatusMsg("");
+
+    // Build the nested payload expected by the DB schema
+    const payload = {
+      ...formData,
+      autonomic_symptoms: {
+        eyelid_edema: formData.eyelid_edema,
+        lacrimation: formData.lacrimation,
+        conjunctival_injection: formData.conjunctival_injection,
+        nasal_congestion: formData.nasal_congestion,
+        rhinorrhea: formData.rhinorrhea,
+        facial_sweating: formData.facial_sweating,
+        lid_droop: formData.lid_droop,
+        aural_fullness: formData.aural_fullness,
+      },
+      red_flags: {
+        onset_thunderclap: formData.rf_onset_thunderclap,
+        onset_progressive: formData.rf_onset_progressive,
+        onset_after_50: formData.rf_onset_after_50,
+        onset_pregnancy: formData.rf_onset_pregnancy,
+        worst_headache: formData.rf_worst_headache,
+        freq_increase: formData.rf_freq_increase,
+        severity_increase: formData.rf_severity_increase,
+        exertion_trigger: formData.rf_exertion_trigger,
+        sexual_activity: formData.rf_sexual_activity,
+        fever: formData.rf_fever,
+        seizure: formData.rf_seizure,
+        neurological_deficit: formData.rf_neurological_deficit,
+        neck_stiffness: formData.rf_neck_stiffness,
+        post_trauma: formData.rf_post_trauma,
+        prior_investigation: formData.rf_prior_investigation,
+        systemic_illness: formData.rf_systemic_illness,
+        weight_gain: formData.rf_weight_gain,
+        tinnitus_tvo: formData.rf_tinnitus_tvo,
+        none: formData.rf_none,
+      },
+      general_findings: {
+        pallor: formData.ge_pallor,
+        icterus: formData.ge_icterus,
+        cyanosis: formData.ge_cyanosis,
+        clubbing: formData.ge_clubbing,
+        pedal_edema: formData.ge_pedal_edema,
+        lymphadenopathy: formData.ge_lymphadenopathy,
+        raised_jvp: formData.ge_raised_jvp,
+        skin_markers: formData.ge_skin_markers,
+        none: formData.ge_none,
+      },
+      acute_meds: [{
+        drug_group: formData.acute_drug_group,
+        drug_name_route: formData.acute_drug_name_route,
+        time_started: formData.acute_time_started,
+        starting_dose: formData.acute_starting_dose,
+        final_dose: formData.acute_final_dose,
+        adverse_effects: formData.acute_adverse_effects,
+        tolerance: formData.acute_tolerance,
+        days_per_month: Number(formData.acute_days_per_month) || 0,
+        effectiveness: formData.acute_effectiveness,
+      }],
+      preventive_meds: [{
+        drug_group: formData.preventive_drug_group,
+        drug_name_route: formData.preventive_drug_name_route,
+        time_started: formData.preventive_time_started,
+        starting_dose: formData.preventive_starting_dose,
+        final_dose: formData.preventive_final_dose,
+        adverse_effects: formData.preventive_adverse_effects,
+        tolerance: formData.preventive_tolerance,
+        days_per_month: Number(formData.preventive_days_per_month) || 0,
+        effectiveness: formData.preventive_effectiveness,
+      }],
+    };
+
+    try {
+      const url = editingId ? `/api/enroll/${editingId}` : "/api/enroll";
+      const method = editingId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSubmitted(true);
+        setStatusMsg(editingId ? "Patient updated successfully!" : "Form submitted successfully!");
+      } else {
+        setStatusMsg(`Error: ${result.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusMsg("A network error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNewForm = () => {
     setFormData(initialState);
     setSubmitted(false);
     setStatusMsg("");
+    setEditingId(null);
+    setLookupId("");
   };
 
   // ── Autonomic symptom rows
@@ -432,7 +648,42 @@ export default function HeadacheRegistryForm() {
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      {/* ── Back link + Load patient bar ── */}
+      <div className="max-w-5xl mx-auto px-4 pt-5">
+        <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline mb-3">
+          ← Patient List
+        </Link>
+        <div className="flex gap-2 items-center bg-white border border-blue-200 rounded-lg px-4 py-3 shadow-sm">
+          <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Load patient by ID:</span>
+          <input
+            type="text"
+            value={lookupId}
+            onChange={(e) => setLookupId(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && fetchPatientManual(lookupId)}
+            placeholder="Paste MongoDB _id here…"
+            className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            type="button"
+            onClick={() => fetchPatientManual(lookupId)}
+            disabled={isLoading || !lookupId.trim()}
+            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded transition"
+          >
+            {isLoading ? "Loading…" : "Load"}
+          </button>
+        </div>
+
+        {/* Editing banner */}
+        {editingId && (
+          <div className="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-lg px-4 py-2">
+            <span className="font-semibold">✏️ Editing patient</span>
+            <code className="font-mono text-xs bg-amber-100 px-2 py-0.5 rounded">{editingId}</code>
+            <span className="ml-auto text-xs text-amber-600">Submit will update this record.</span>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 py-4 space-y-4">
 
         {/* ═══════════════════════════════════════════════════════
             SUPER SECTION — Demographic Details
@@ -1194,22 +1445,51 @@ export default function HeadacheRegistryForm() {
 
         {/* Submit */}
         <div className="text-center mt-8 mb-12 space-y-3">
-          {!submitted ? (
-            <button type="submit"
-              className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
-              Submit Form
-            </button>
-          ) : (
-            <button type="button" onClick={handleNewForm}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
-              New Form
-            </button>
-          )}
+          <div className="flex justify-center gap-3">
+            {!submitted ? (
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-10 py-3 rounded-lg shadow transition"
+              >
+                {isLoading ? "Saving…" : editingId ? "Update Patient" : "Submit Form"}
+              </button>
+            ) : (
+              <button type="button" onClick={handleNewForm}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
+                New Form
+              </button>
+            )}
+            {/* Always show a "New Form" escape hatch while editing, even before submit */}
+            {editingId && !submitted && (
+              <button type="button" onClick={handleNewForm}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg shadow transition">
+                Cancel
+              </button>
+            )}
+          </div>
           {statusMsg && (
-            <p className="text-green-700 font-medium text-sm">{statusMsg}</p>
+            <p className={`font-medium text-sm ${statusMsg.startsWith("Error") || statusMsg.startsWith("Patient not found") || statusMsg.startsWith("A network") ? "text-red-600" : "text-green-700"}`}>
+              {statusMsg}
+            </p>
           )}
         </div>
+
       </form>
     </div>
+  );
+}
+
+// ─── Default export with Suspense (required for useSearchParams) ──────────────
+
+export default function HeadacheRegistryForm() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+        Loading form…
+      </div>
+    }>
+      <HeadacheRegistryFormContent />
+    </Suspense>
   );
 }

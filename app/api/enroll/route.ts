@@ -17,16 +17,29 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await dbConnect();
 
-        // Fetch essential fields for the summary table
-        const patients = await Patient.find({})
-            .select('HCN_Number patient_name age gender date_of_first_assessment updatedAt')
-            .sort({ updatedAt: -1 });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+        const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') ?? '100', 10)));
+        const skip = (page - 1) * limit;
 
-        return NextResponse.json({ success: true, data: patients });
+        const [patients, total] = await Promise.all([
+            Patient.find({})
+                .select('HCN_Number patient_name age gender provisional_diagnosis date_of_first_assessment phone_number')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Patient.countDocuments(),
+        ]);
+
+        return NextResponse.json({
+            success: true,
+            data: patients,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        });
     } catch (error: any) {
         console.error('Error fetching patients:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
