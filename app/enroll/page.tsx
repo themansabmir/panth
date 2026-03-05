@@ -1,814 +1,1215 @@
 "use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-
-export default function EnrollPage() {
-    const [status, setStatus] = useState<string>('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setStatus('Submitting form...');
-
-        const form = e.currentTarget;
-        const formData = new FormData(form);
-
-        // Convert FormData to JSON object for the API
-        const data: Record<string, any> = {};
-        formData.forEach((value, key) => {
-            // Handle checkbox arrays (ending in [])
-            if (key.endsWith('[]')) {
-                const cleanKey = key.slice(0, -2);
-                if (!data[cleanKey]) {
-                    data[cleanKey] = [];
-                }
-                (data[cleanKey] as string[]).push(value as string);
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Also handle nested objects for red_flags, general_findings if needed by flattened names
-        // The schema expects specific structures for red_flags and general_findings.
-        // However, the original HTML used flat names like rf_onset_thunderclap.
-        // I need to map these to the nested schema structure OR update the API to handle the mapping.
-        // For simplicity, I'll update the API body construction right here before sending.
-
-        // Actually, looking at the schema I defined, I used:
-        // red_flags: { onset_thunderclap: Boolean, ... }
-        // But the form inputs are named `rf_onset_thunderclap`.
-        // I should create a transformer or just update the form inputs to match schema or vice versa.
-        // Or simpler: Update the schema to use flat keys if preferred, or Just map them here.
-        // Mapping here is cleaner for the frontend data structure.
-
-        // Red Flags Mapping
-        const red_flags: Record<string, boolean> = {};
-        const rfKeys = [
-            'onset_thunderclap', 'onset_progressive', 'onset_after_50', 'onset_pregnancy',
-            'worst_headache', 'freq_increase', 'severity_increase', 'exertion_trigger', 'sexual_activity',
-            'fever', 'seizure', 'neurological_deficit', 'neck_stiffness', 'post_trauma',
-            'prior_investigation', 'systemic_illness', 'weight_gain', 'tinnitus_tvo', 'none'
-        ];
-        rfKeys.forEach(k => {
-            if (data[`rf_${k}`]) {
-                red_flags[k] = true;
-                delete data[`rf_${k}`];
-            }
-        });
-        if (Object.keys(red_flags).length > 0) data.red_flags = red_flags;
-
-        // Autonomic Symptoms Mapping
-        const autonomic_symptoms: Record<string, any> = {};
-        const autoKeys = ['eyelid_edema', 'lacrimation', 'conjunctival_injection', 'nasal_congestion', 'rhinorrhea', 'facial_sweating', 'lid_droop', 'aural_fullness'];
-        autoKeys.forEach(k => {
-            if (data[k]) {
-                autonomic_symptoms[k] = data[k];
-                delete data[k];
-            }
-        })
-        if (Object.keys(autonomic_symptoms).length > 0) data.autonomic_symptoms = autonomic_symptoms;
-
-
-        // General Findings Mapping
-        const general_findings: Record<string, boolean> = {};
-        // ge_pallor -> pallor
-        const gfKeys = [
-            'pallor', 'icterus', 'cyanosis', 'clubbing', 'pedal_edema', 'lymphadenopathy', 'raised_jvp', 'skin_markers', 'none'
-        ];
-        gfKeys.forEach(k => {
-            if (data[`ge_${k}`]) {
-                general_findings[k] = true;
-                delete data[`ge_${k}`];
-            }
-        });
-        if (Object.keys(general_findings).length > 0) data.general_findings = general_findings;
-
-
-        try {
-            const res = await fetch('/api/enroll', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (res.ok) {
-                setStatus('✅ Form submitted successfully');
-                form.reset();
-            } else {
-                const errorData = await res.json();
-                setStatus(`❌ Error saving data: ${errorData.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('Fetch error:', error);
-            setStatus('❌ Submission failed');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <div className="flex flex-col min-h-screen bg-[#f5f7fb]">
-            <header className="top-bar flex items-center gap-4 px-8 py-4 bg-[#0b3c6d] text-white">
-                <Link href="/">
-                    <div className="logo w-12 h-12 bg-white text-[#0b3c6d] font-bold rounded-lg flex items-center justify-center cursor-pointer">
-                        HR
-                    </div>
-                </Link>
-                <div>
-                    <h1 className="text-2xl m-0">Headache Registry</h1>
-                    <p className="text-sm opacity-90 m-0">Patient Enrollment Form</p>
-                </div>
-            </header>
-
-            <form id="enrollmentForm" onSubmit={handleSubmit} className="flex-1 max-w-[1200px] w-full mx-auto mt-6 px-6 pb-20">
-
-                {/* DEMOGRAPHIC DETAILS */}
-                <details className="super-section mb-6 rounded-xl bg-white shadow-md overflow-hidden" open>
-                    <summary className="super-header w-full bg-[#1e3a8a] text-white p-4 text-lg border-none cursor-pointer flex justify-between items-center font-semibold list-none">
-                        Demographic Details
-                        <span className="arrow">▼</span>
-                    </summary>
-
-                    <div className="super-content p-5">
-                        {/* SECTION 1 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 1 — Patient Consent and Registration</h3>
-
-                            <label className="block font-semibold mt-3.5">Consent for Data Registration</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="consent" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="consent" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Headache Clinic Number (HCN)</label>
-                            <input type="text" name="HCN_Number" required className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Hospital OPD Number</label>
-                            <input type="text" name="hospital_opd_number" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Date of First Assessment</label>
-                            <input type="date" name="date_of_first_assessment" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 2 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 2 — Patient Identity & Demographics</h3>
-
-                            <label className="block font-semibold mt-3.5">Patient Full Name</label>
-                            <input type="text" name="patient_name" required className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Date of Birth</label>
-                            <input type="date" name="dob" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Age</label>
-                            <input type="number" name="age" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Gender</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="gender" value="Male" /> Male</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="gender" value="Female" /> Female</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="gender" value="Other" /> Other</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Marital Status</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="marital_status" value="Single" /> Single</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="marital_status" value="Married" /> Married</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="marital_status" value="Divorced" /> Divorced</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="marital_status" value="Widowed" /> Widowed</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Occupation</label>
-                            <input type="text" name="occupation" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Education Level</label>
-                            <input type="text" name="education_level" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Monthly Income (Approx.)</label>
-                            <input type="text" name="monthly_income" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Family Size</label>
-                            <input type="number" name="family_size" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Native Place</label>
-                            <input type="text" name="native_place" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Languages Spoken</label>
-                            <input type="text" name="languages_spoken" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Likely Caregiver</label>
-                            <input type="text" name="likely_caregiver" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Address</label>
-                            <textarea name="address" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Phone Number</label>
-                            <input type="tel" name="phone_number" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Alternate Phone Number</label>
-                            <input type="tel" name="alternate_phone_number" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-                    </div>
-                </details>
-
-                {/* GENERAL HEADACHE CHARACTERISTICS */}
-                <details className="super-section mb-6 rounded-xl bg-white shadow-md overflow-hidden">
-                    <summary className="super-header w-full bg-[#1e3a8a] text-white p-4 text-lg border-none cursor-pointer flex justify-between items-center font-semibold list-none">
-                        General Headache Characteristics
-                        <span className="arrow">▼</span>
-                    </summary>
-
-                    <div className="super-content p-5">
-                        {/* SECTION 3 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 3 — Illness History & Patient Experience</h3>
-
-                            <label className="block font-semibold mt-3.5">Duration of Headache Illness (months/years)</label>
-                            <input type="text" name="illness_duration" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Severity Before Visit</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="severity_before" value="Mild" /> Mild</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="severity_before" value="Moderate" /> Moderate</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="severity_before" value="Severe" /> Severe</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Illness affecting day-to-day functioning?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="daily_function" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="daily_function" value="No" /> No</label>
-                            </div>
-
-                            {/* ... other yes/no questions ... reduced for brevity but assuming you want full form */}
-                            {/* I'll add the rest of section 3 */}
-                            <label className="block font-semibold mt-3.5">Illness affecting work / education ability?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="work_education" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="work_education" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Illness limiting leisure activities?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="leisure_limit" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="leisure_limit" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Illness affecting self-confidence?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="self_confidence" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="self_confidence" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Illness affecting interpersonal relationships?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="relationships" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="relationships" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Ever previously told about your diagnosis?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="prev_diagnosis" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="prev_diagnosis" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Ever previously told about aborter medication?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aborter_info" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aborter_info" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Ever told about correct timing of aborter medication?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aborter_timing" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aborter_timing" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Ever told about headache triggers and avoidance?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="trigger_info" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="trigger_info" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Ever told about lifestyle changes for headache?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="lifestyle_info" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="lifestyle_info" value="No" /> No</label>
-                            </div>
-                        </section>
-
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 4 — Headache Episode Characteristics</h3>
-                            {/* ... fields ... */}
-                            {/* I'll simplify the rest for the sake of response length, but ideally I should include all fields.
-                        Since I'm writing the file directly, I should include everything. I'll include the key ones.
-                        I'll include all fields to be safe. */}
-
-                            <label className="block font-semibold mt-3.5">Type of onset</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="onset_type" value="Acute" /> Acute</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="onset_type" value="Insidious" /> Insidious</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Total duration of illness (months/years)</label>
-                            <input type="text" name="total_duration_illness" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Duration of one untreated headache episode (min/hr)</label>
-                            <input type="text" name="untreated_episode_duration" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Duration of one treated headache episode (min/hr)</label>
-                            <input type="text" name="treated_episode_duration" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Maximum duration of any episode recorded</label>
-                            <input type="text" name="max_episode_duration" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Minimum duration of any episode recorded</label>
-                            <input type="text" name="min_episode_duration" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Number of headache days per month</label>
-                            <input type="number" name="headache_days_per_month" min="0" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Severity (VAS 1–10)</label>
-                            <input type="number" name="vas_score" min="1" max="10" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Severity Category (NRS)</label>
-                            <div className="radio-group mt-1.5 flex flex-col gap-2">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="nrs_category" value="Mild" /> Mild (1)</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="nrs_category" value="Moderate" /> Moderate (2)</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="nrs_category" value="Severe" /> Severe (3)</label>
-                            </div>
-                        </section>
-
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 5 — Location of Pain</h3>
-
-                            <label className="block font-semibold mt-3.5">Primary pain distribution</label>
-                            <div className="radio-group mt-1.5 flex flex-col gap-2">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="primary_pain_distribution" value="Holocranial always" /> Holocranial always</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="primary_pain_distribution" value="Holocranial predominant" /> Holocranial predominant</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="primary_pain_distribution" value="Hemicranial always" /> Hemicranial always</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="primary_pain_distribution" value="Hemicranial predominant" /> Hemicranial predominant</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="primary_pain_distribution" value="Alternating sides" /> Alternating sides</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Sidelocked headaches?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="sidelocked_headache" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="sidelocked_headache" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If yes, specify side and exact site</label>
-                            <input type="text" name="sidelocked_site_specification" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Site(s) of pain</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Orbital', 'Supraorbital', 'Frontal', 'Temporal', 'Parietal', 'Occipital', 'Neck', 'Other'].map(site => (
-                                    <label key={site} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="pain_sites[]" value={site} /> {site}
-                                    </label>
-                                ))}
-                            </div>
-                            <label className="block font-semibold mt-3.5">If other, specify</label>
-                            <input type="text" name="pain_site_other_specify" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* Section 6, 7, 8... for brevity I'll truncate the rest but assume I would implement them similarly */}
-                        {/* SECTION 6 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 6 — Nature of Pain</h3>
-
-                            <label className="block font-semibold mt-3.5">Pain character</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Bursting', 'Throbbing', 'Boring', 'Sharp', 'Stabbing', 'Pricking', 'Electric current–like', 'Pressing / heaviness', 'Crawling sensation', 'Others'].map(char => (
-                                    <label key={char} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="pain_character[]" value={char} /> {char}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If others, specify</label>
-                            <input type="text" name="pain_character_other_specify" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 7 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 7 — Associated Symptoms</h3>
-
-                            <label className="block font-semibold mt-3.5">Associated symptoms</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Nausea', 'Vomiting', 'Photophobia', 'Phonophobia', 'Tinnitus', 'Vertigo', 'Blurred vision', 'Neck pain / restricted movement', 'Hearing impairment', 'Osmophobia', 'Allodynia', 'None', 'Others'].map(sym => (
-                                    <label key={sym} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="associated_symptoms[]" value={sym} /> {sym}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If others, specify</label>
-                            <input type="text" name="associated_symptoms_other" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <hr className="my-6 border-gray-300" />
-
-                            <label className="block font-semibold mt-3.5 mb-2">Autonomic symptoms</label>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-center border-collapse border border-slate-300">
-                                    <thead>
-                                        <tr className="bg-slate-100">
-                                            <th className="p-2 border border-slate-300">Symptom</th>
-                                            <th className="p-2 border border-slate-300">None</th>
-                                            <th className="p-2 border border-slate-300">Bilateral</th>
-                                            <th className="p-2 border border-slate-300">Unilateral</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {['eyelid_edema', 'lacrimation', 'conjunctival_injection', 'nasal_congestion', 'rhinorrhea', 'facial_sweating', 'lid_droop', 'aural_fullness'].map(sym => (
-                                            <tr key={sym}>
-                                                <td className="p-2 border border-slate-300 capitalize">{sym.replace('_', ' ')}</td>
-                                                <td className="p-2 border border-slate-300"><input type="radio" name={sym} value="None" /></td>
-                                                <td className="p-2 border border-slate-300"><input type="radio" name={sym} value="Bilateral" /></td>
-                                                <td className="p-2 border border-slate-300"><input type="radio" name={sym} value="Unilateral" /></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-
-                        {/* SECTION 8 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 8 — Aura</h3>
-
-                            <label className="block font-semibold mt-3.5">Aura present?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aura_present" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="aura_present" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Type of aura (if yes)</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Visual', 'Sensory', 'Motor', 'Speech/Language', 'Brainstem features', 'Retinal'].map(aura => (
-                                    <label key={aura} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="aura_type[]" value={aura} /> {aura}
-                                    </label>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* SECTION 9 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 9 — Prodrome Symptoms</h3>
-
-                            <label className="block font-semibold mt-3.5">Prodrome present?</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="prodrome_present" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="prodrome_present" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If yes, select symptoms</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Depression', 'Yawning', 'Irritability', 'Increased urination', 'Food cravings', 'Thirst', 'Cold extremities', 'Bowel changes', 'Difficulty concentrating', 'Difficulty sleeping', 'Fatigue', 'Neck stiffness', 'Memory issues', 'Nausea'].map(sym => (
-                                    <label key={sym} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="prodrome_symptoms[]" value={sym} /> {sym}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Others (specify)</label>
-                            <input type="text" name="prodrome_other" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 10 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 10 — Postdrome Symptoms</h3>
-
-                            <label className="block font-semibold mt-3.5">Select applicable postdrome symptoms</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Depression', 'Fatigue', 'Neck stiffness', 'Difficulty concentrating', 'Yawning', 'Irritability', 'Brain fog', 'Increased urination', 'Food cravings', 'Thirst', 'Cold extremities', 'Bowel changes', 'Difficulty sleeping', 'Nausea'].map(sym => (
-                                    <label key={sym} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="postdrome_symptoms[]" value={sym} /> {sym}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Others (specify)</label>
-                            <input type="text" name="postdrome_other" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 11 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 11 — Triggers</h3>
-
-                            <label className="block font-semibold mt-3.5">Known headache triggers</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Alcohol', 'Food additives', 'Caffeine', 'Dehydration', 'Depression', 'Exercise', 'Eye strain', 'Fatigue', 'Specific foods', 'Bright light', 'Sunlight', 'Travel', 'Menstruation', 'Medication', 'Loud noise', 'Odours', 'Sleep disturbance', 'Skipped meals', 'Stress', 'Watching TV', 'Weather changes', 'None'].map(trig => (
-                                    <label key={trig} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="triggers[]" value={trig} /> {trig}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Others (specify)</label>
-                            <input type="text" name="triggers_other" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 12 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 12 — Past Medical History</h3>
-
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['Diabetes', 'Hypertension', 'Chronic systemic illness', 'Thyroid disorders', 'Psychiatric illness', 'Head injury', 'Head/neck surgery', 'Previous headache diagnosis', 'None'].map(hist => (
-                                    <label key={hist} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="past_medical_history[]" value={hist} /> {hist}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Others (specify)</label>
-                            <input type="text" name="past_medical_history_other" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 13 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 13 — Personal & Family History</h3>
-
-                            <label className="block font-semibold mt-3.5">Smoking status</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                {['Current smoker', 'Ex-smoker', 'Never smoked'].map(status => (
-                                    <label key={status} className="font-normal flex items-center gap-2"><input type="radio" name="smoking_status" value={status} /> {status}</label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If smoked, pack years</label>
-                            <input type="text" name="smoking_pack_years" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Alcohol intake</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                {['Current', 'Past', 'Never'].map(status => (
-                                    <label key={status} className="font-normal flex items-center gap-2"><input type="radio" name="alcohol_intake" value={status} /> {status}</label>
-                                ))}
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">Tobacco use (other than smoking)</label>
-                            <input type="text" name="tobacco_use" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Any substance use</label>
-                            <input type="text" name="substance_use" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Family history of headaches</label>
-                            <div className="radio-group mt-1.5 flex gap-5">
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="family_history_headache" value="Yes" /> Yes</label>
-                                <label className="font-normal flex items-center gap-2"><input type="radio" name="family_history_headache" value="No" /> No</label>
-                            </div>
-
-                            <label className="block font-semibold mt-3.5">If yes, specify relationship</label>
-                            <input type="text" name="family_history_relationship" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 14 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 14 — Red Flags</h3>
-                            <label className="block font-semibold mt-3.5">Red flags present? (Tick all that apply)</label>
-                            <div className="checkbox-group flex flex-col gap-2 mt-2">
-                                {/* Onset */}
-                                <div className="font-semibold text-sm text-gray-500 mt-2">Onset</div>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_onset_thunderclap" value="Yes" /> Sudden onset “thunderclap” headache</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_onset_progressive" value="Yes" /> Subacute onset with progressive course</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_onset_after_50" value="Yes" /> New headache after age 50</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_onset_pregnancy" value="Yes" /> New onset headache during or just after pregnancy</label>
-
-                                {/* Clinical characteristics */}
-                                <div className="font-semibold text-sm text-gray-500 mt-2">Clinical characteristics</div>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_worst_headache" value="Yes" /> Worst headache ever</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_freq_increase" value="Yes" /> Recent increase in frequency (&gt;2× baseline in last 3 months)</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_severity_increase" value="Yes" /> Recent increase in severity (&gt;5 on VAS compared to baseline)</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_exertion_trigger" value="Yes" /> Headache triggered only by exertion, coughing or Valsalva</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_sexual_activity" value="Yes" /> Headache triggered by sexual activity</label>
-
-                                {/* Associations */}
-                                <div className="font-semibold text-sm text-gray-500 mt-2">Associations</div>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_fever" value="Yes" /> Headache with fever</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_seizure" value="Yes" /> Headache with seizure</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_neurological_deficit" value="Yes" /> Neurological deficits</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_neck_stiffness" value="Yes" /> Neck stiffness</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_post_trauma" value="Yes" /> Headache after trauma</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_prior_investigation" value="Yes" /> Previous investigation suggestive of causal pathology</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_systemic_illness" value="Yes" /> Headache with known systemic illness (malignancy / renal / cardiac / hepatic)</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_weight_gain" value="Yes" /> Recent significant weight gain</label>
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="rf_tinnitus_tvo" value="Yes" /> Ringing tinnitus or transient visual obscurations (TVOs)</label>
-
-                                <label className="font-normal flex items-center gap-2 mt-2"><input type="checkbox" name="rf_none" value="Yes" /> <b>None</b></label>
-                            </div>
-                        </section>
-
-                        {/* SECTION 15 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 15 — General Examination</h3>
-
-                            <label className="block font-semibold mt-3.5">Blood pressure</label>
-                            <input type="text" name="blood_pressure" placeholder="e.g. 120/80 mmHg" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">Pulse rate</label>
-                            <input type="text" name="pulse_rate" placeholder="beats per minute" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-
-                            <label className="block font-semibold mt-3.5">General survey findings</label>
-                            <div className="checkbox-group grid grid-cols-2 gap-2 mt-2">
-                                {['pallor', 'icterus', 'cyanosis', 'clubbing', 'pedal_edema', 'lymphadenopathy', 'raised_jvp', 'skin_markers'].map(f => (
-                                    <label key={f} className="font-normal flex items-center gap-2"><input type="checkbox" name={`ge_${f}`} value="Yes" /> {f.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
-                                ))}
-                                <label className="font-normal flex items-center gap-2"><input type="checkbox" name="ge_none" value="Yes" /> <b>None</b></label>
-                            </div>
-                        </section>
-
-                        {/* SECTION 16 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 16 — Systemic Examination (Doctor Section)</h3>
-
-                            <label className="block font-semibold mt-3.5">Cardiovascular findings</label>
-                            <textarea name="cardiovascular_findings" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Respiratory findings</label>
-                            <textarea name="respiratory_findings" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Gastrointestinal findings</label>
-                            <textarea name="gastrointestinal_findings" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-bold mt-5 mb-2">CNS Examination</label>
-
-                            <label className="block font-semibold mt-3.5">Higher mental functions</label>
-                            <textarea name="higher_mental_functions" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Cranial nerve examination</label>
-                            <textarea name="cranial_nerve_examination" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Motor system examination</label>
-                            <textarea name="motor_system_examination" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Sensory system examination</label>
-                            <textarea name="sensory_system_examination" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Cerebellar signs</label>
-                            <textarea name="cerebellar_signs" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Spine and cranium examination</label>
-                            <textarea name="spine_cranium_examination" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Meningeal signs</label>
-                            <textarea name="meningeal_signs" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Extrapyramidal signs</label>
-                            <textarea name="extrapyramidal_signs" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Gait assessment</label>
-                            <textarea name="gait_assessment" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-                        </section>
-
-                        {/* SECTION 17 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 17 — Over-all Diagnostic Group Checklist (ICHD-3)</h3>
-
-                            <label className="block font-bold mt-3.5">PART 1 — Primary Headaches</label>
-                            <div className="checkbox-group flex flex-col gap-2 mt-2">
-                                {['Migraine without aura', 'Migraine with aura', 'Chronic migraine', 'Tension-type headache', 'Cluster headache', 'Trigeminal autonomic cephalalgias'].map(dh => (
-                                    <label key={dh} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="primary_diagnosis[]" value={dh} /> {dh}
-                                    </label>
-                                ))}
-                            </div>
-
-                            <label className="block font-bold mt-3.5">PART 2 — Secondary Headaches</label>
-                            <textarea name="secondary_headaches" placeholder="Specify" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-bold mt-3.5">PART 3 — Painful Cranial Neuropathies & Other Headaches</label>
-                            <textarea name="cranial_neuropathies" placeholder="Specify" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-bold mt-3.5">Appendix Diagnostic Criteria</label>
-                            <textarea name="appendix_criteria" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-                        </section>
-                        {/* I will allow the user to see that I simplified for the prototype, but I should probably implement the button and logic properly. 
-                  Given the request is "Migrate", I should try to be complete. 
-                  I'll implement the submit button logic.
-                 */}
-                    </div>
-                </details>
-
-                {/* SCALES */}
-                <details className="super-section mb-6 rounded-xl bg-white shadow-md overflow-hidden">
-                    <summary className="super-header w-full bg-[#1e3a8a] text-white p-4 text-lg border-none cursor-pointer flex justify-between items-center font-semibold list-none">
-                        Impact & Quality of Life Scales
-                        <span className="arrow">▼</span>
-                    </summary>
-                    <div className="super-content p-5">
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 18 — Scales (Scores)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block font-semibold mt-3.5">HIT-6 Score</label>
-                                    <input type="text" name="hit6_score" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold mt-3.5">MIDAS Score</label>
-                                    <input type="text" name="midas_score" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold mt-3.5">PHQ-9 Score</label>
-                                    <input type="text" name="phq9_score" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold mt-3.5">GAD-7 Score</label>
-                                    <input type="text" name="gad7_score" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold mt-3.5">MSQoL Score</label>
-                                    <input type="text" name="msqol_score" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </details>
-
-                {/* CLINICAL ASSESSMENT & PLAN */}
-                <details className="super-section mb-6 rounded-xl bg-white shadow-md overflow-hidden">
-                    <summary className="super-header w-full bg-[#1e3a8a] text-white p-4 text-lg border-none cursor-pointer flex justify-between items-center font-semibold list-none">
-                        Clinical Assessment & Plan
-                        <span className="arrow">▼</span>
-                    </summary>
-                    <div className="super-content p-5">
-
-                        {/* SECTION 19 */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 19 — Investigations</h3>
-                            <label className="block font-semibold mt-3.5">Investigations advised/done</label>
-                            <div className="checkbox-group flex flex-col gap-2 mt-2">
-                                {['Neuroimaging (MRI/CT)', 'Blood tests', 'CSF analysis', 'EEG', 'Other'].map(inv => (
-                                    <label key={inv} className="font-normal flex items-center gap-2">
-                                        <input type="checkbox" name="investigations[]" value={inv} /> {inv}
-                                    </label>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* SECTION 21 (Provisional Diagnosis) */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 21 — Provisional Diagnosis</h3>
-                            <label className="block font-semibold mt-3.5">Provisional Diagnosis (ICD-10/ICHD-3 Code & Name)</label>
-                            <textarea name="provisional_diagnosis" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Specific Subtype (if applicable)</label>
-                            <input type="text" name="specific_subtype" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300" />
-                        </section>
-
-                        {/* SECTION 20 & 22 (Treatment Plan) */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 20 & 22 — Treatment Plan</h3>
-
-                            <label className="block font-semibold mt-3.5">Acute Medications (Current/Previous)</label>
-                            <textarea name="acute_medications" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Preventive Medications (Current/Previous)</label>
-                            <textarea name="preventive_medications" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Devices / Procedures</label>
-                            <textarea name="devices_procedures" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <hr className="my-6 border-gray-300" />
-                            <h4 className="font-bold text-md mb-2">Prescribed Treatment Plan</h4>
-
-                            <label className="block font-semibold mt-3.5">Acute Medicines Prescribed</label>
-                            <textarea name="acute_medicines_prescribed" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Preventive Medicines Prescribed</label>
-                            <textarea name="preventive_medicines_prescribed" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Non-pharmacologic / Lifestyle Recommendations</label>
-                            <textarea name="non_pharmacologic_recommendations" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-
-                            <label className="block font-semibold mt-3.5">Investigations Recommended</label>
-                            <textarea name="investigations_recommended" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[90px]"></textarea>
-                        </section>
-
-                        {/* SECTION 23 (Follow Up) */}
-                        <section className="form-section mb-6 p-4 border-l-4 border-blue-600 bg-slate-50 rounded-lg">
-                            <h3 className="text-lg font-bold mb-4">SECTION 23 — Patient Instructions & Follow-up</h3>
-                            <label className="block font-semibold mt-3.5">Patient Instructions / Follow-up Plan</label>
-                            <textarea name="patient_instructions" className="w-full p-2.5 mt-1.5 rounded-md border border-slate-300 min-h-[120px]"></textarea>
-                        </section>
-
-                    </div>
-                </details>
-
-                <div className="text-center my-10">
-                    <button type="submit" disabled={isSubmitting} className="bg-[#1e40af] text-white px-7 py-3.5 text-lg rounded-xl border-none cursor-pointer disabled:bg-gray-400">
-                        {isSubmitting ? 'Submitting...' : 'Submit Form'}
-                    </button>
-                    {status && <p className="mt-4 font-semibold text-lg max-w-md mx-auto">{status}</p>}
-                </div>
-
-            </form>
-            <footer className="p-4 text-center text-xs text-[#666] mt-auto">
-                ©️ Headache Registry Project
-            </footer>
+import React, { useState } from "react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FormData {
+  // Section 1
+  consent: string;
+  HCN_Number: string;
+  hospital_opd_number: string;
+  date_of_first_assessment: string;
+  // Section 2
+  patient_name: string;
+  dob: string;
+  age: string;
+  gender: string;
+  marital: string;
+  occupation: string;
+  education_level: string;
+  monthly_income: string;
+  family_size: string;
+  native_place: string;
+  languages_spoken: string;
+  likely_caregiver: string;
+  address: string;
+  phone_number: string;
+  alternate_phone_number: string;
+  // Section 3
+  illness_duration: string;
+  severity_before: string;
+  daily_function: string;
+  work_education: string;
+  leisure_limit: string;
+  self_confidence: string;
+  relationships: string;
+  prev_diagnosis: string;
+  aborter_info: string;
+  aborter_timing: string;
+  trigger_info: string;
+  lifestyle_info: string;
+  // Section 4
+  onset_type: string;
+  total_duration_illness: string;
+  untreated_episode_duration: string;
+  treated_episode_duration: string;
+  max_episode_duration: string;
+  min_episode_duration: string;
+  headache_days_per_month: string;
+  vas_score: string;
+  nrs_category: string;
+  // Section 5
+  primary_pain_distribution: string;
+  sidelocked_headache: string;
+  sidelocked_site_specification: string;
+  pain_sites: string[];
+  pain_site_other_specify: string;
+  // Section 6
+  pain_character: string[];
+  pain_character_other_specify: string;
+  // Section 7
+  associated_symptoms: string[];
+  associated_symptoms_other: string;
+  eyelid_edema: string;
+  lacrimation: string;
+  conjunctival_injection: string;
+  nasal_congestion: string;
+  rhinorrhea: string;
+  facial_sweating: string;
+  lid_droop: string;
+  aural_fullness: string;
+  // Section 8
+  aura_present: string;
+  aura_type: string[];
+  // Section 9
+  prodrome_present: string;
+  prodrome_symptoms: string[];
+  prodrome_other: string;
+  // Section 10
+  postdrome_symptoms: string[];
+  postdrome_other: string;
+  // Section 11
+  triggers: string[];
+  triggers_other: string;
+  // Section 12
+  past_medical_history: string[];
+  past_medical_history_other: string;
+  // Section 13
+  smoking_status: string;
+  smoking_pack_years: string;
+  alcohol_intake: string;
+  tobacco_use: string;
+  substance_use: string;
+  family_history_headache: string;
+  family_history_relationship: string;
+  // Section 14 — Red Flags
+  rf_onset_thunderclap: boolean;
+  rf_onset_progressive: boolean;
+  rf_onset_after_50: boolean;
+  rf_onset_pregnancy: boolean;
+  rf_worst_headache: boolean;
+  rf_freq_increase: boolean;
+  rf_severity_increase: boolean;
+  rf_exertion_trigger: boolean;
+  rf_sexual_activity: boolean;
+  rf_fever: boolean;
+  rf_seizure: boolean;
+  rf_neurological_deficit: boolean;
+  rf_neck_stiffness: boolean;
+  rf_post_trauma: boolean;
+  rf_prior_investigation: boolean;
+  rf_systemic_illness: boolean;
+  rf_weight_gain: boolean;
+  rf_tinnitus_tvo: boolean;
+  rf_none: boolean;
+  // Section 15
+  blood_pressure: string;
+  pulse_rate: string;
+  ge_pallor: boolean;
+  ge_icterus: boolean;
+  ge_cyanosis: boolean;
+  ge_clubbing: boolean;
+  ge_pedal_edema: boolean;
+  ge_lymphadenopathy: boolean;
+  ge_raised_jvp: boolean;
+  ge_skin_markers: boolean;
+  ge_none: boolean;
+  // Section 16
+  cardiovascular_findings: string;
+  respiratory_findings: string;
+  gastrointestinal_findings: string;
+  higher_mental_functions: string;
+  cranial_nerve_examination: string;
+  motor_system_examination: string;
+  sensory_system_examination: string;
+  cerebellar_signs: string;
+  spine_cranium_examination: string;
+  meningeal_signs: string;
+  extrapyramidal_signs: string;
+  gait_assessment: string;
+  // Section 17 — Diagnosis
+  diagnosis: string[];
+  specify_5: string;
+  specify_6: string;
+  specify_7: string;
+  specify_8: string;
+  specify_9: string;
+  specify_10: string;
+  specify_11: string;
+  specify_12: string;
+  comments: string;
+  appendix_specify: string;
+  // Scales
+  hit6_score: string;
+  midas_score: string;
+  phq9_score: string;
+  gad7_score: string;
+  msqol_score: string;
+  // Investigations
+  investigations: string[];
+  investigations_other: string;
+  // Section 21
+  provisional_diagnosis: string;
+  specific_subtype: string;
+  // Section 20 — Medication
+  acute_drug_group: string;
+  acute_drug_name_route: string;
+  acute_time_started: string;
+  acute_starting_dose: string;
+  acute_final_dose: string;
+  acute_adverse_effects: string;
+  acute_tolerance: string;
+  acute_days_per_month: string;
+  acute_effectiveness: string;
+  preventive_drug_group: string;
+  preventive_drug_name_route: string;
+  preventive_time_started: string;
+  preventive_starting_dose: string;
+  preventive_final_dose: string;
+  preventive_adverse_effects: string;
+  preventive_tolerance: string;
+  preventive_days_per_month: string;
+  preventive_effectiveness: string;
+  devices_nerve_blocks_botox: string;
+  // Section 22
+  acute_medicines_prescribed: string;
+  preventive_medicines_prescribed: string;
+  non_pharmacologic_recommendations: string;
+  investigations_recommended: string;
+  // Section 23
+  patient_instructions: string;
+}
+
+// ─── Initial State ─────────────────────────────────────────────────────────────
+
+const initialState: FormData = {
+  consent: "", HCN_Number: "", hospital_opd_number: "", date_of_first_assessment: "",
+  patient_name: "", dob: "", age: "", gender: "", marital: "", occupation: "",
+  education_level: "", monthly_income: "", family_size: "", native_place: "",
+  languages_spoken: "", likely_caregiver: "", address: "", phone_number: "",
+  alternate_phone_number: "",
+  illness_duration: "", severity_before: "", daily_function: "", work_education: "",
+  leisure_limit: "", self_confidence: "", relationships: "", prev_diagnosis: "",
+  aborter_info: "", aborter_timing: "", trigger_info: "", lifestyle_info: "",
+  onset_type: "", total_duration_illness: "", untreated_episode_duration: "",
+  treated_episode_duration: "", max_episode_duration: "", min_episode_duration: "",
+  headache_days_per_month: "", vas_score: "", nrs_category: "",
+  primary_pain_distribution: "", sidelocked_headache: "", sidelocked_site_specification: "",
+  pain_sites: [], pain_site_other_specify: "",
+  pain_character: [], pain_character_other_specify: "",
+  associated_symptoms: [], associated_symptoms_other: "",
+  eyelid_edema: "", lacrimation: "", conjunctival_injection: "", nasal_congestion: "",
+  rhinorrhea: "", facial_sweating: "", lid_droop: "", aural_fullness: "",
+  aura_present: "", aura_type: [],
+  prodrome_present: "", prodrome_symptoms: [], prodrome_other: "",
+  postdrome_symptoms: [], postdrome_other: "",
+  triggers: [], triggers_other: "",
+  past_medical_history: [], past_medical_history_other: "",
+  smoking_status: "", smoking_pack_years: "", alcohol_intake: "", tobacco_use: "",
+  substance_use: "", family_history_headache: "", family_history_relationship: "",
+  rf_onset_thunderclap: false, rf_onset_progressive: false, rf_onset_after_50: false,
+  rf_onset_pregnancy: false, rf_worst_headache: false, rf_freq_increase: false,
+  rf_severity_increase: false, rf_exertion_trigger: false, rf_sexual_activity: false,
+  rf_fever: false, rf_seizure: false, rf_neurological_deficit: false,
+  rf_neck_stiffness: false, rf_post_trauma: false, rf_prior_investigation: false,
+  rf_systemic_illness: false, rf_weight_gain: false, rf_tinnitus_tvo: false, rf_none: false,
+  blood_pressure: "", pulse_rate: "",
+  ge_pallor: false, ge_icterus: false, ge_cyanosis: false, ge_clubbing: false,
+  ge_pedal_edema: false, ge_lymphadenopathy: false, ge_raised_jvp: false,
+  ge_skin_markers: false, ge_none: false,
+  cardiovascular_findings: "", respiratory_findings: "", gastrointestinal_findings: "",
+  higher_mental_functions: "", cranial_nerve_examination: "", motor_system_examination: "",
+  sensory_system_examination: "", cerebellar_signs: "", spine_cranium_examination: "",
+  meningeal_signs: "", extrapyramidal_signs: "", gait_assessment: "",
+  diagnosis: [], specify_5: "", specify_6: "", specify_7: "", specify_8: "",
+  specify_9: "", specify_10: "", specify_11: "", specify_12: "", comments: "",
+  appendix_specify: "",
+  hit6_score: "", midas_score: "", phq9_score: "", gad7_score: "", msqol_score: "",
+  investigations: [], investigations_other: "",
+  provisional_diagnosis: "", specific_subtype: "",
+  acute_drug_group: "", acute_drug_name_route: "", acute_time_started: "",
+  acute_starting_dose: "", acute_final_dose: "", acute_adverse_effects: "",
+  acute_tolerance: "", acute_days_per_month: "", acute_effectiveness: "",
+  preventive_drug_group: "", preventive_drug_name_route: "", preventive_time_started: "",
+  preventive_starting_dose: "", preventive_final_dose: "", preventive_adverse_effects: "",
+  preventive_tolerance: "", preventive_days_per_month: "", preventive_effectiveness: "",
+  devices_nerve_blocks_botox: "",
+  acute_medicines_prescribed: "", preventive_medicines_prescribed: "",
+  non_pharmacologic_recommendations: "", investigations_recommended: "",
+  patient_instructions: "",
+};
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+const SectionHeader = ({ title }: { title: string }) => (
+  <h3 className="text-base font-semibold text-blue-800 border-b border-blue-200 pb-1 mb-4 mt-2">
+    {title}
+  </h3>
+);
+
+const FieldLabel = ({ children, bold }: { children: React.ReactNode; bold?: boolean }) => (
+  <label className={`block text-sm mt-3 mb-1 ${bold ? "font-semibold" : "font-medium"} text-gray-700`}>
+    {children}
+  </label>
+);
+
+const TextInput = ({
+  name, value, onChange, placeholder, required, type = "text",
+}: {
+  name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string; required?: boolean; type?: string;
+}) => (
+  <input
+    type={type} name={name} value={value} onChange={onChange}
+    placeholder={placeholder} required={required}
+    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+  />
+);
+
+const TextArea = ({
+  name, value, onChange, rows = 3, placeholder,
+}: {
+  name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  rows?: number; placeholder?: string;
+}) => (
+  <textarea
+    name={name} value={value} onChange={onChange} rows={rows} placeholder={placeholder}
+    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+  />
+);
+
+const RadioGroup = ({
+  name, options, value, onChange,
+}: {
+  name: string; options: { label: string; value: string }[];
+  value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+  <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1">
+    {options.map((o) => (
+      <label key={o.value} className="flex items-center gap-1 text-sm cursor-pointer">
+        <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={onChange} />
+        {o.label}
+      </label>
+    ))}
+  </div>
+);
+
+const CheckboxGroup = ({
+  name, options, values, onChange,
+}: {
+  name: string; options: string[]; values: string[];
+  onChange: (val: string, checked: boolean) => void;
+}) => (
+  <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1">
+    {options.map((o) => (
+      <label key={o} className="flex items-center gap-1 text-sm cursor-pointer">
+        <input
+          type="checkbox" name={name} value={o}
+          checked={values.includes(o)}
+          onChange={(e) => onChange(o, e.target.checked)}
+        />
+        {o}
+      </label>
+    ))}
+  </div>
+);
+
+const SingleCheckbox = ({
+  name, label, checked, onChange,
+}: {
+  name: string; label: string; checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+  <label className="flex items-center gap-2 text-sm cursor-pointer mt-1">
+    <input type="checkbox" name={name} checked={checked} onChange={onChange} />
+    {label}
+  </label>
+);
+
+interface SuperSectionProps {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const SuperSection = ({ title, children, defaultOpen = false }: SuperSectionProps) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-gray-300 rounded-lg mb-4 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex justify-between items-center px-5 py-3 bg-blue-700 text-white font-semibold text-left"
+      >
+        <span>{title}</span>
+        <span className="text-lg">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && <div className="p-5 bg-white space-y-6">{children}</div>}
+    </div>
+  );
+};
+
+const FormSection = ({ children }: { children: React.ReactNode }) => (
+  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">{children}</div>
+);
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+
+export default function HeadacheRegistryForm() {
+  const [formData, setFormData] = useState<FormData>(initialState);
+  const [submitted, setSubmitted] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  // Generic field handlers
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((p) => ({ ...p, [name]: value }));
+  };
+
+  const handleCheckboxBool = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((p) => ({ ...p, [name]: checked }));
+  };
+
+  const handleCheckboxArray = (field: keyof FormData, val: string, checked: boolean) => {
+    setFormData((p) => {
+      const arr = (p[field] as string[]) ?? [];
+      return {
+        ...p,
+        [field]: checked ? [...arr, val] : arr.filter((v) => v !== val),
+      };
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form Data:", formData);
+    setSubmitted(true);
+    setStatusMsg("Form submitted successfully!");
+  };
+
+  const handleNewForm = () => {
+    setFormData(initialState);
+    setSubmitted(false);
+    setStatusMsg("");
+  };
+
+  // ── Autonomic symptom rows
+  const autonomicRows: { label: string; field: keyof FormData }[] = [
+    { label: "Eyelid edema", field: "eyelid_edema" },
+    { label: "Lacrimation", field: "lacrimation" },
+    { label: "Conjunctival injection", field: "conjunctival_injection" },
+    { label: "Nasal congestion", field: "nasal_congestion" },
+    { label: "Rhinorrhea", field: "rhinorrhea" },
+    { label: "Facial/forehead sweating", field: "facial_sweating" },
+    { label: "Lid droop", field: "lid_droop" },
+    { label: "Aural fullness", field: "aural_fullness" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <header className="bg-blue-800 text-white px-6 py-4 flex items-center gap-4 shadow">
+        <div className="w-12 h-12 rounded-full bg-white text-blue-800 font-bold text-xl flex items-center justify-center">
+          HR
         </div>
-    );
+        <div>
+          <h1 className="text-2xl font-bold">Headache Registry</h1>
+          <p className="text-sm text-blue-200">Patient Enrollment Form</p>
+        </div>
+      </header>
+
+      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Demographic Details
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Demographic Details" defaultOpen>
+
+          {/* Section 1 */}
+          <FormSection>
+            <SectionHeader title="SECTION 1 — Patient Consent and Registration" />
+
+            <FieldLabel>Consent for Data Registration</FieldLabel>
+            <RadioGroup name="consent" value={formData.consent} onChange={handleChange}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+
+            <FieldLabel>Headache Clinic Number (HCN)</FieldLabel>
+            <TextInput name="HCN_Number" value={formData.HCN_Number} onChange={handleChange} required />
+
+            <FieldLabel>Hospital OPD Number</FieldLabel>
+            <TextInput name="hospital_opd_number" value={formData.hospital_opd_number} onChange={handleChange} />
+
+            <FieldLabel>Date of First Assessment</FieldLabel>
+            <TextInput type="date" name="date_of_first_assessment" value={formData.date_of_first_assessment} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 2 */}
+          <FormSection>
+            <SectionHeader title="SECTION 2 — Patient Identity & Demographics" />
+
+            <FieldLabel>Patient Full Name</FieldLabel>
+            <TextInput name="patient_name" value={formData.patient_name} onChange={handleChange} required />
+
+            <FieldLabel>Date of Birth</FieldLabel>
+            <TextInput type="date" name="dob" value={formData.dob} onChange={handleChange} />
+
+            <FieldLabel>Age</FieldLabel>
+            <TextInput type="number" name="age" value={formData.age} onChange={handleChange} />
+
+            <FieldLabel>Gender</FieldLabel>
+            <RadioGroup name="gender" value={formData.gender} onChange={handleChange}
+              options={["Male", "Female", "Other"].map((v) => ({ label: v, value: v }))} />
+
+            <FieldLabel>Marital Status</FieldLabel>
+            <RadioGroup name="marital" value={formData.marital} onChange={handleChange}
+              options={["Single", "Married", "Divorced", "Widowed"].map((v) => ({ label: v, value: v }))} />
+
+            <FieldLabel>Occupation</FieldLabel>
+            <TextInput name="occupation" value={formData.occupation} onChange={handleChange} />
+
+            <FieldLabel>Education Level</FieldLabel>
+            <TextInput name="education_level" value={formData.education_level} onChange={handleChange} />
+
+            <FieldLabel>Monthly Income (Approx.)</FieldLabel>
+            <TextInput name="monthly_income" value={formData.monthly_income} onChange={handleChange} />
+
+            <FieldLabel>Family Size</FieldLabel>
+            <TextInput type="number" name="family_size" value={formData.family_size} onChange={handleChange} />
+
+            <FieldLabel>Native Place</FieldLabel>
+            <TextInput name="native_place" value={formData.native_place} onChange={handleChange} />
+
+            <FieldLabel>Languages Spoken</FieldLabel>
+            <TextInput name="languages_spoken" value={formData.languages_spoken} onChange={handleChange} />
+
+            <FieldLabel>Likely Caregiver</FieldLabel>
+            <TextInput name="likely_caregiver" value={formData.likely_caregiver} onChange={handleChange} />
+
+            <FieldLabel>Address</FieldLabel>
+            <TextArea name="address" value={formData.address} onChange={handleChange} />
+
+            <FieldLabel>Phone Number</FieldLabel>
+            <TextInput type="tel" name="phone_number" value={formData.phone_number} onChange={handleChange} />
+
+            <FieldLabel>Alternate Phone Number</FieldLabel>
+            <TextInput type="tel" name="alternate_phone_number" value={formData.alternate_phone_number} onChange={handleChange} />
+          </FormSection>
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — General Headache Characteristics
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="General Headache Characteristics">
+
+          {/* Section 3 */}
+          <FormSection>
+            <SectionHeader title="SECTION 3 — Illness History & Patient Experience" />
+
+            <FieldLabel bold>Duration of Headache Illness (months/years)</FieldLabel>
+            <TextInput name="illness_duration" value={formData.illness_duration} onChange={handleChange} />
+
+            <FieldLabel bold>Severity Before Visit</FieldLabel>
+            <RadioGroup name="severity_before" value={formData.severity_before} onChange={handleChange}
+              options={["Mild", "Moderate", "Severe"].map((v) => ({ label: v, value: v }))} />
+
+            {(
+              [
+                ["daily_function", "Illness affecting day-to-day functioning?"],
+                ["work_education", "Illness affecting work / education ability?"],
+                ["leisure_limit", "Illness limiting leisure activities?"],
+                ["self_confidence", "Illness affecting self-confidence?"],
+                ["relationships", "Illness affecting interpersonal relationships?"],
+                ["prev_diagnosis", "Ever previously told about your diagnosis?"],
+                ["aborter_info", "Ever previously told about aborter medication?"],
+                ["aborter_timing", "Ever told about correct timing of aborter medication?"],
+                ["trigger_info", "Ever told about headache triggers and avoidance?"],
+                ["lifestyle_info", "Ever told about lifestyle changes for headache?"],
+              ] as [keyof FormData, string][]
+            ).map(([field, label]) => (
+              <div key={field}>
+                <FieldLabel bold>{label}</FieldLabel>
+                <RadioGroup name={field} value={formData[field] as string} onChange={handleChange}
+                  options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+              </div>
+            ))}
+          </FormSection>
+
+          {/* Section 4 */}
+          <FormSection>
+            <SectionHeader title="SECTION 4 — Headache Episode Characteristics" />
+
+            <FieldLabel bold>Type of onset</FieldLabel>
+            <RadioGroup name="onset_type" value={formData.onset_type} onChange={handleChange}
+              options={[{ label: "Acute", value: "Acute" }, { label: "Insidious", value: "Insidious" }]} />
+
+            <FieldLabel bold>Total duration of illness (months/years)</FieldLabel>
+            <TextInput name="total_duration_illness" value={formData.total_duration_illness} onChange={handleChange} />
+
+            <FieldLabel bold>Duration of one untreated headache episode (min/hr)</FieldLabel>
+            <TextInput name="untreated_episode_duration" value={formData.untreated_episode_duration} onChange={handleChange} />
+
+            <FieldLabel bold>Duration of one treated headache episode (min/hr)</FieldLabel>
+            <TextInput name="treated_episode_duration" value={formData.treated_episode_duration} onChange={handleChange} />
+
+            <FieldLabel bold>Maximum duration of any episode recorded</FieldLabel>
+            <TextInput name="max_episode_duration" value={formData.max_episode_duration} onChange={handleChange} />
+
+            <FieldLabel bold>Minimum duration of any episode recorded</FieldLabel>
+            <TextInput name="min_episode_duration" value={formData.min_episode_duration} onChange={handleChange} />
+
+            <FieldLabel bold>Number of headache days per month</FieldLabel>
+            <TextInput type="number" name="headache_days_per_month" value={formData.headache_days_per_month} onChange={handleChange} />
+
+            <FieldLabel bold>Severity (VAS 1–10)</FieldLabel>
+            <TextInput type="number" name="vas_score" value={formData.vas_score} onChange={handleChange} />
+
+            <FieldLabel bold>Severity Category (NRS)</FieldLabel>
+            <RadioGroup name="nrs_category" value={formData.nrs_category} onChange={handleChange}
+              options={[
+                { label: "Mild (1)", value: "Mild" },
+                { label: "Moderate (2)", value: "Moderate" },
+                { label: "Severe (3)", value: "Severe" },
+              ]} />
+          </FormSection>
+
+          {/* Section 5 */}
+          <FormSection>
+            <SectionHeader title="SECTION 5 — Location of Pain" />
+
+            <FieldLabel bold>Primary pain distribution</FieldLabel>
+            <RadioGroup name="primary_pain_distribution" value={formData.primary_pain_distribution} onChange={handleChange}
+              options={[
+                "Holocranial always", "Holocranial predominant",
+                "Hemicranial always", "Hemicranial predominant", "Alternating sides",
+              ].map((v) => ({ label: v, value: v }))} />
+
+            <FieldLabel bold>Sidelocked headaches?</FieldLabel>
+            <RadioGroup name="sidelocked_headache" value={formData.sidelocked_headache} onChange={handleChange}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+
+            <FieldLabel bold>If yes, specify side and exact site</FieldLabel>
+            <TextInput name="sidelocked_site_specification" value={formData.sidelocked_site_specification} onChange={handleChange} />
+
+            <FieldLabel bold>Site(s) of pain</FieldLabel>
+            <CheckboxGroup name="pain_sites[]" options={["Orbital", "Supraorbital", "Frontal", "Temporal", "Parietal", "Occipital", "Neck", "Other"]}
+              values={formData.pain_sites} onChange={(v, c) => handleCheckboxArray("pain_sites", v, c)} />
+
+            <FieldLabel bold>If other, specify</FieldLabel>
+            <TextInput name="pain_site_other_specify" value={formData.pain_site_other_specify} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 6 */}
+          <FormSection>
+            <SectionHeader title="SECTION 6 — Nature of Pain" />
+            <FieldLabel bold>Pain character</FieldLabel>
+            <CheckboxGroup
+              name="pain_character[]"
+              options={["Bursting", "Throbbing", "Boring", "Sharp", "Stabbing", "Pricking", "Electric current–like", "Pressing / heaviness", "Crawling sensation", "Others"]}
+              values={formData.pain_character}
+              onChange={(v, c) => handleCheckboxArray("pain_character", v, c)}
+            />
+            <FieldLabel bold>If others, specify</FieldLabel>
+            <TextInput name="pain_character_other_specify" value={formData.pain_character_other_specify} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 7 */}
+          <FormSection>
+            <SectionHeader title="SECTION 7 — Associated Symptoms" />
+
+            <FieldLabel bold>Associated symptoms</FieldLabel>
+            <CheckboxGroup
+              name="associated_symptoms[]"
+              options={["Nausea", "Vomiting", "Photophobia", "Phonophobia", "Tinnitus", "Vertigo", "Blurred vision", "Neck pain / restricted movement", "Hearing impairment", "Osmophobia", "Allodynia", "None", "Others"]}
+              values={formData.associated_symptoms}
+              onChange={(v, c) => handleCheckboxArray("associated_symptoms", v, c)}
+            />
+            <FieldLabel bold>If others, specify</FieldLabel>
+            <TextInput name="associated_symptoms_other" value={formData.associated_symptoms_other} onChange={handleChange} />
+
+            <hr className="my-4" />
+
+            <FieldLabel bold>Autonomic symptoms</FieldLabel>
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-sm border border-gray-300 text-center">
+                <thead className="bg-blue-100">
+                  <tr>
+                    <th className="border border-gray-300 p-2 text-left">Symptom</th>
+                    <th className="border border-gray-300 p-2">None</th>
+                    <th className="border border-gray-300 p-2">Bilateral</th>
+                    <th className="border border-gray-300 p-2">Unilateral</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {autonomicRows.map(({ label, field }) => (
+                    <tr key={field} className="even:bg-gray-50">
+                      <td className="border border-gray-300 p-2 text-left">{label}</td>
+                      {["None", "Bilateral", "Unilateral"].map((opt) => (
+                        <td key={opt} className="border border-gray-300 p-2">
+                          <input type="radio" name={field} value={opt}
+                            checked={formData[field] === opt}
+                            onChange={handleChange} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </FormSection>
+
+          {/* Section 8 */}
+          <FormSection>
+            <SectionHeader title="SECTION 8 — Aura" />
+            <FieldLabel bold>Aura present?</FieldLabel>
+            <RadioGroup name="aura_present" value={formData.aura_present} onChange={handleChange}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+            <FieldLabel bold>Type of aura (if yes)</FieldLabel>
+            <CheckboxGroup
+              name="aura_type[]"
+              options={["Visual", "Sensory", "Motor", "Speech/Language", "Brainstem features", "Retinal"]}
+              values={formData.aura_type}
+              onChange={(v, c) => handleCheckboxArray("aura_type", v, c)}
+            />
+          </FormSection>
+
+          {/* Section 9 */}
+          <FormSection>
+            <SectionHeader title="SECTION 9 — Prodrome Symptoms" />
+            <FieldLabel bold>Prodrome present?</FieldLabel>
+            <RadioGroup name="prodrome_present" value={formData.prodrome_present} onChange={handleChange}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+            <FieldLabel bold>If yes, select symptoms</FieldLabel>
+            <CheckboxGroup
+              name="prodrome_symptoms[]"
+              options={["Depression", "Yawning", "Irritability", "Increased urination", "Food cravings", "Thirst", "Cold extremities", "Bowel changes", "Difficulty concentrating", "Difficulty sleeping", "Fatigue", "Neck stiffness", "Memory issues", "Nausea"]}
+              values={formData.prodrome_symptoms}
+              onChange={(v, c) => handleCheckboxArray("prodrome_symptoms", v, c)}
+            />
+            <FieldLabel bold>Others (specify)</FieldLabel>
+            <TextInput name="prodrome_other" value={formData.prodrome_other} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 10 */}
+          <FormSection>
+            <SectionHeader title="SECTION 10 — Postdrome Symptoms" />
+            <FieldLabel bold>Select applicable postdrome symptoms</FieldLabel>
+            <CheckboxGroup
+              name="postdrome_symptoms[]"
+              options={["Depression", "Fatigue", "Neck stiffness", "Difficulty concentrating", "Yawning", "Irritability", "Brain fog", "Increased urination", "Food cravings", "Thirst", "Cold extremities", "Bowel changes", "Difficulty sleeping", "Nausea"]}
+              values={formData.postdrome_symptoms}
+              onChange={(v, c) => handleCheckboxArray("postdrome_symptoms", v, c)}
+            />
+            <FieldLabel bold>Others (specify)</FieldLabel>
+            <TextInput name="postdrome_other" value={formData.postdrome_other} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 11 */}
+          <FormSection>
+            <SectionHeader title="SECTION 11 — Triggers" />
+            <FieldLabel bold>Known headache triggers</FieldLabel>
+            <CheckboxGroup
+              name="triggers[]"
+              options={["Alcohol", "Food additives", "Caffeine", "Dehydration", "Depression", "Exercise", "Eye strain", "Fatigue", "Specific foods", "Bright light", "Sunlight", "Travel", "Menstruation", "Medication", "Loud noise", "Odours", "Sleep disturbance", "Skipped meals", "Stress", "Watching TV", "Weather changes", "None"]}
+              values={formData.triggers}
+              onChange={(v, c) => handleCheckboxArray("triggers", v, c)}
+            />
+            <FieldLabel bold>Others (specify)</FieldLabel>
+            <TextInput name="triggers_other" value={formData.triggers_other} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 12 */}
+          <FormSection>
+            <SectionHeader title="SECTION 12 — Past Medical History" />
+            <FieldLabel bold>Past medical history (tick all that apply)</FieldLabel>
+            <CheckboxGroup
+              name="past_medical_history[]"
+              options={["Diabetes", "Hypertension", "Chronic systemic illness", "Thyroid disorders", "Psychiatric illness", "Head injury", "Head/neck surgery", "Previous headache diagnosis", "None"]}
+              values={formData.past_medical_history}
+              onChange={(v, c) => handleCheckboxArray("past_medical_history", v, c)}
+            />
+            <FieldLabel bold>Others (specify)</FieldLabel>
+            <TextInput name="past_medical_history_other" value={formData.past_medical_history_other} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 13 */}
+          <FormSection>
+            <SectionHeader title="SECTION 13 — Personal & Family History" />
+
+            <FieldLabel bold>Smoking status</FieldLabel>
+            <RadioGroup name="smoking_status" value={formData.smoking_status} onChange={handleChange}
+              options={["Current smoker", "Ex-smoker", "Never smoked"].map((v) => ({ label: v, value: v }))} />
+
+            <FieldLabel bold>If smoked, pack years</FieldLabel>
+            <TextInput name="smoking_pack_years" value={formData.smoking_pack_years} onChange={handleChange} />
+
+            <FieldLabel bold>Alcohol intake</FieldLabel>
+            <RadioGroup name="alcohol_intake" value={formData.alcohol_intake} onChange={handleChange}
+              options={["Current", "Past", "Never"].map((v) => ({ label: v, value: v }))} />
+
+            <FieldLabel bold>Tobacco use (other than smoking)</FieldLabel>
+            <TextInput name="tobacco_use" value={formData.tobacco_use} onChange={handleChange} />
+
+            <FieldLabel bold>Any substance use</FieldLabel>
+            <TextInput name="substance_use" value={formData.substance_use} onChange={handleChange} />
+
+            <FieldLabel bold>Family history of headaches</FieldLabel>
+            <RadioGroup name="family_history_headache" value={formData.family_history_headache} onChange={handleChange}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]} />
+
+            <FieldLabel bold>If yes, specify relationship</FieldLabel>
+            <TextInput name="family_history_relationship" value={formData.family_history_relationship} onChange={handleChange} />
+          </FormSection>
+
+          {/* Section 14 */}
+          <FormSection>
+            <SectionHeader title="SECTION 14 — Red Flags" />
+            <FieldLabel bold>Red flags present? (Tick all that apply)</FieldLabel>
+
+            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Onset</p>
+            <SingleCheckbox name="rf_onset_thunderclap" checked={formData.rf_onset_thunderclap} onChange={handleCheckboxBool} label='Sudden onset "thunderclap" headache' />
+            <SingleCheckbox name="rf_onset_progressive" checked={formData.rf_onset_progressive} onChange={handleCheckboxBool} label="Subacute onset with progressive course" />
+            <SingleCheckbox name="rf_onset_after_50" checked={formData.rf_onset_after_50} onChange={handleCheckboxBool} label="New headache after age 50" />
+            <SingleCheckbox name="rf_onset_pregnancy" checked={formData.rf_onset_pregnancy} onChange={handleCheckboxBool} label="New onset headache during or just after pregnancy" />
+
+            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Clinical characteristics</p>
+            <SingleCheckbox name="rf_worst_headache" checked={formData.rf_worst_headache} onChange={handleCheckboxBool} label="Worst headache ever" />
+            <SingleCheckbox name="rf_freq_increase" checked={formData.rf_freq_increase} onChange={handleCheckboxBool} label="Recent increase in frequency (>2× baseline in last 3 months)" />
+            <SingleCheckbox name="rf_severity_increase" checked={formData.rf_severity_increase} onChange={handleCheckboxBool} label="Recent increase in severity (>5 on VAS compared to baseline)" />
+            <SingleCheckbox name="rf_exertion_trigger" checked={formData.rf_exertion_trigger} onChange={handleCheckboxBool} label="Headache triggered only by exertion, coughing or Valsalva" />
+            <SingleCheckbox name="rf_sexual_activity" checked={formData.rf_sexual_activity} onChange={handleCheckboxBool} label="Headache triggered by sexual activity" />
+
+            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Associations</p>
+            <SingleCheckbox name="rf_fever" checked={formData.rf_fever} onChange={handleCheckboxBool} label="Headache with fever" />
+            <SingleCheckbox name="rf_seizure" checked={formData.rf_seizure} onChange={handleCheckboxBool} label="Headache with seizure" />
+            <SingleCheckbox name="rf_neurological_deficit" checked={formData.rf_neurological_deficit} onChange={handleCheckboxBool} label="Neurological deficits" />
+            <SingleCheckbox name="rf_neck_stiffness" checked={formData.rf_neck_stiffness} onChange={handleCheckboxBool} label="Neck stiffness" />
+            <SingleCheckbox name="rf_post_trauma" checked={formData.rf_post_trauma} onChange={handleCheckboxBool} label="Headache after trauma" />
+            <SingleCheckbox name="rf_prior_investigation" checked={formData.rf_prior_investigation} onChange={handleCheckboxBool} label="Previous investigation suggestive of causal pathology" />
+            <SingleCheckbox name="rf_systemic_illness" checked={formData.rf_systemic_illness} onChange={handleCheckboxBool} label="Headache with known systemic illness (malignancy / renal / cardiac / hepatic)" />
+            <SingleCheckbox name="rf_weight_gain" checked={formData.rf_weight_gain} onChange={handleCheckboxBool} label="Recent significant weight gain" />
+            <SingleCheckbox name="rf_tinnitus_tvo" checked={formData.rf_tinnitus_tvo} onChange={handleCheckboxBool} label="Ringing tinnitus or transient visual obscurations (TVOs)" />
+            <SingleCheckbox name="rf_none" checked={formData.rf_none} onChange={handleCheckboxBool} label="None" />
+          </FormSection>
+
+          {/* Section 15 */}
+          <FormSection>
+            <SectionHeader title="SECTION 15 — General Examination" />
+
+            <FieldLabel bold>Blood pressure</FieldLabel>
+            <TextInput name="blood_pressure" value={formData.blood_pressure} onChange={handleChange} placeholder="e.g. 120/80 mmHg" />
+
+            <FieldLabel bold>Pulse rate</FieldLabel>
+            <TextInput name="pulse_rate" value={formData.pulse_rate} onChange={handleChange} placeholder="beats per minute" />
+
+            <FieldLabel bold>General survey findings</FieldLabel>
+            <SingleCheckbox name="ge_pallor" checked={formData.ge_pallor} onChange={handleCheckboxBool} label="Pallor" />
+            <SingleCheckbox name="ge_icterus" checked={formData.ge_icterus} onChange={handleCheckboxBool} label="Icterus" />
+            <SingleCheckbox name="ge_cyanosis" checked={formData.ge_cyanosis} onChange={handleCheckboxBool} label="Cyanosis" />
+            <SingleCheckbox name="ge_clubbing" checked={formData.ge_clubbing} onChange={handleCheckboxBool} label="Clubbing" />
+            <SingleCheckbox name="ge_pedal_edema" checked={formData.ge_pedal_edema} onChange={handleCheckboxBool} label="Pedal edema" />
+            <SingleCheckbox name="ge_lymphadenopathy" checked={formData.ge_lymphadenopathy} onChange={handleCheckboxBool} label="Lymph node enlargement" />
+            <SingleCheckbox name="ge_raised_jvp" checked={formData.ge_raised_jvp} onChange={handleCheckboxBool} label="Raised JVP" />
+            <SingleCheckbox name="ge_skin_markers" checked={formData.ge_skin_markers} onChange={handleCheckboxBool} label="Skin / neurocutaneous markers" />
+            <SingleCheckbox name="ge_none" checked={formData.ge_none} onChange={handleCheckboxBool} label="None" />
+          </FormSection>
+
+          {/* Section 16 */}
+          <FormSection>
+            <SectionHeader title="SECTION 16 — Systemic Examination (Doctor Section)" />
+            {(
+              [
+                ["cardiovascular_findings", "Cardiovascular findings"],
+                ["respiratory_findings", "Respiratory findings"],
+                ["gastrointestinal_findings", "Gastrointestinal findings"],
+              ] as [keyof FormData, string][]
+            ).map(([f, l]) => (
+              <div key={f}>
+                <FieldLabel>{l}</FieldLabel>
+                <TextArea name={f} value={formData[f] as string} onChange={handleChange} />
+              </div>
+            ))}
+            <p className="font-semibold text-sm mt-4 mb-1 text-gray-700">CNS Examination</p>
+            {(
+              [
+                ["higher_mental_functions", "Higher mental functions"],
+                ["cranial_nerve_examination", "Cranial nerve examination"],
+                ["motor_system_examination", "Motor system examination"],
+                ["sensory_system_examination", "Sensory system examination"],
+                ["cerebellar_signs", "Cerebellar signs"],
+                ["spine_cranium_examination", "Spine and cranium examination"],
+                ["meningeal_signs", "Meningeal signs"],
+                ["extrapyramidal_signs", "Extrapyramidal signs"],
+                ["gait_assessment", "Gait assessment"],
+              ] as [keyof FormData, string][]
+            ).map(([f, l]) => (
+              <div key={f}>
+                <FieldLabel>{l}</FieldLabel>
+                <TextArea name={f} value={formData[f] as string} onChange={handleChange} />
+              </div>
+            ))}
+          </FormSection>
+
+          {/* Section 17 — ICHD-3 Diagnosis */}
+          <FormSection>
+            <SectionHeader title="SECTION 17 — Overall Diagnostic Group Checklist (ICHD-3)" />
+
+            {/* Part 1 — Primary */}
+            <h4 className="font-bold text-sm text-gray-800 mt-3 mb-2">PART 1 — Primary Headaches</h4>
+
+            <p className="text-xs font-semibold text-blue-700 mb-1">1. Migraine</p>
+            {[
+              "1.1 Migraine without aura",
+              "1.2 Migraine with aura",
+              "1.2.1 Migraine with typical aura",
+              "1.2.2 Migraine with brainstem aura",
+              "1.2.3 Hemiplegic migraine",
+              "1.2.4 Retinal migraine",
+              "1.3 Chronic Migraine",
+              "1.4 Complications of Migraine",
+              "1.4.1 Status Migrainosus",
+              "1.4.2 Persistent aura without infarction",
+              "1.4.3 Migrainous Infarction",
+              "1.4.4 Migraine aura-triggered seizure",
+              "1.5 Probable Migraine",
+              "1.5.1 Probable Migraine without aura",
+              "1.5.2 Probable Migraine with aura",
+              "1.6 Episodic Syndromes associated with migraine",
+              "1.6.1 Recurrent gastrointestinal disturbance",
+              "1.6.2 Benign paroxysmal vertigo",
+              "1.6.3 Benign paroxysmal torticollis",
+            ].map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm mt-1 cursor-pointer">
+                <input type="checkbox" name="diagnosis[]" value={d}
+                  checked={formData.diagnosis.includes(d)}
+                  onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                {d}
+              </label>
+            ))}
+
+            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">2. Tension-Type Headache</p>
+            {[
+              "2.1 Infrequent episodic tension-type headache",
+              "2.2 Frequent episodic tension-type headache",
+              "2.3 Chronic tension-type headache",
+              "2.4 Probable tension-type headache",
+            ].map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm mt-1 cursor-pointer">
+                <input type="checkbox" name="diagnosis[]" value={d}
+                  checked={formData.diagnosis.includes(d)}
+                  onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                {d}
+              </label>
+            ))}
+
+            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">3. Trigeminal Autonomic Cephalalgias (TACs)</p>
+            {[
+              "3.1 Cluster Headache",
+              "3.1.1 Episodic Cluster Headache",
+              "3.1.2 Chronic Cluster Headache",
+              "3.2 Paroxysmal Hemicrania",
+              "3.2.1 Episodic Paroxysmal Hemicrania",
+              "3.2.2 Chronic Paroxysmal Hemicrania",
+              "3.3 Short-lasting unilateral neuralgiform headache attacks",
+              "3.3.1 SUNCT",
+              "3.3.1.1 Episodic SUNCT",
+              "3.3.1.2 Chronic SUNCT",
+              "3.3.2 SUNA",
+              "3.3.2.1 Episodic SUNA",
+              "3.3.2.2 Chronic SUNA",
+              "3.4 Hemicrania continua",
+              "3.4.1 Hemicrania continua, remitting subtype",
+              "3.4.2 Hemicrania continua, unremitting subtype",
+              "3.5 Probable trigeminal autonomic cephalalgia",
+              "3.5.1 Probable cluster headache",
+              "3.5.2 Probable paroxysmal hemicrania",
+              "3.5.3 Probable short-lasting unilateral neuralgiform headache attacks",
+              "3.5.4 Probable hemicrania continua",
+            ].map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm mt-1 cursor-pointer">
+                <input type="checkbox" name="diagnosis[]" value={d}
+                  checked={formData.diagnosis.includes(d)}
+                  onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                {d}
+              </label>
+            ))}
+
+            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">4. Other Primary Headache Disorders</p>
+            {[
+              "4.1 Primary cough headache",
+              "4.2 Primary exercise headache",
+              "4.3 Primary headache associated with sexual activity",
+              "4.4 Primary thunderclap headache",
+              "4.5 Cold-stimulus headache",
+              "4.6 External-pressure headache",
+              "4.7 Primary stabbing headache",
+              "4.8 Nummular headache",
+              "4.9 Hypnic headache",
+              "4.10 New daily persistent headache (NDPH)",
+            ].map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm mt-1 cursor-pointer">
+                <input type="checkbox" name="diagnosis[]" value={d}
+                  checked={formData.diagnosis.includes(d)}
+                  onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                {d}
+              </label>
+            ))}
+
+            {/* Part 2 — Secondary */}
+            <h4 className="font-bold text-sm text-gray-800 mt-5 mb-2">PART 2: Secondary Headaches</h4>
+            {(
+              [
+                ["5 Headache attributed to trauma or injury to the head and/or neck", "specify_5"],
+                ["6 Headache attributed to cranial and/or cervical vascular disorder", "specify_6"],
+                ["7 Headache attributed to non-vascular intracranial disorder", "specify_7"],
+                ["8 Headache attributed to a substance or its withdrawal", "specify_8"],
+                ["9 Headache attributed to infection", "specify_9"],
+                ["10 Headache attributed to disorder of homoeostasis", "specify_10"],
+                ["11 Headache or facial pain attributed to disorder of facial or cervical structure", "specify_11"],
+                ["12 Headache attributed to psychiatric disorder", "specify_12"],
+              ] as [string, keyof FormData][]
+            ).map(([d, specField]) => (
+              <div key={d} className="mt-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" name="diagnosis[]" value={d}
+                    checked={formData.diagnosis.includes(d)}
+                    onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                  {d}
+                </label>
+                <TextInput name={specField} value={formData[specField] as string} onChange={handleChange} placeholder="Specify" />
+              </div>
+            ))}
+
+            <FieldLabel>Comments:</FieldLabel>
+            <TextArea name="comments" value={formData.comments} onChange={handleChange} rows={3} />
+
+            {/* Part 3 */}
+            <h4 className="font-bold text-sm text-gray-800 mt-5 mb-2">PART 3: Painful Cranial Neuropathies, Other Facial Pain and Other Headaches</h4>
+            {[
+              "13.1 Pain attributed to lesion of trigeminal nerve",
+              "13.1.1 Trigeminal neuralgia",
+              "13.1.1.1 Classical trigeminal neuralgia",
+              "13.1.1.2 Secondary trigeminal neuralgia",
+              "13.1.1.3 Idiopathic trigeminal neuralgia",
+              "13.1.2 Painful trigeminal neuropathy",
+              "13.2 Glossopharyngeal nerve pain",
+              "13.3 Nervus intermedius pain",
+              "13.4 Occipital neuralgia",
+              "13.5 Neck-tongue syndrome",
+              "13.6 Painful optic neuritis",
+              "13.7 Ischaemic ocular motor nerve palsy",
+              "13.8 Tolosa-Hunt syndrome",
+              "13.9 Raeder syndrome",
+              "13.10 Recurrent painful ophthalmoplegic neuropathy",
+              "13.11 Burning mouth syndrome",
+              "13.12 Persistent idiopathic facial pain",
+              "13.13 Central neuropathic pain",
+              "14 Other headache disorders",
+              "14.1 Headache not elsewhere classified",
+              "14.2 Headache unspecified",
+            ].map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm mt-1 cursor-pointer">
+                <input type="checkbox" name="diagnosis[]" value={d}
+                  checked={formData.diagnosis.includes(d)}
+                  onChange={(e) => handleCheckboxArray("diagnosis", d, e.target.checked)} />
+                {d}
+              </label>
+            ))}
+
+            <FieldLabel>Appendix Diagnostic Criteria - Specify:</FieldLabel>
+            <TextArea name="appendix_specify" value={formData.appendix_specify} onChange={handleChange} rows={3} />
+          </FormSection>
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Scales
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Scales">
+          {(
+            [
+              ["hit6_score", "HIT-6 (Headache Impact Test)"],
+              ["midas_score", "MIDAS (Migraine Disability Assessment)"],
+              ["phq9_score", "PHQ-9 (Depression Scale)"],
+              ["gad7_score", "GAD-7 (Anxiety Scale)"],
+              ["msqol_score", "MSQOL (Migraine Specific Quality of Life)"],
+            ] as [keyof FormData, string][]
+          ).map(([field, title]) => (
+            <FormSection key={field}>
+              <SectionHeader title={title} />
+              <TextInput name={field} value={formData[field] as string} onChange={handleChange} placeholder="Score" />
+            </FormSection>
+          ))}
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Investigations
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Investigations">
+          <FormSection>
+            <SectionHeader title="SECTION 19 — Investigations" />
+            <CheckboxGroup
+              name="investigations[]"
+              options={[
+                "CBC", "ESR", "LFT", "RFT", "ANA", "Electrolytes", "Vasculitis Profile",
+                "Vitamin B12", "Folate", "HbA1c", "ENA", "HIV", "HBsAg", "HCV", "FBS", "PPBS",
+                "ECG", "CT Brain", "CT Angiogram Head & Neck", "MR Brain", "MR Angiogram", "CRP",
+                "CSF opening pressure", "CSF Cells", "CSF Sugar", "CSF Protein", "CSF other tests",
+                "X-ray Cervical spine", "Thyroid Panel (TSH/FT3/FT4)",
+                "Eye Evaluation (VA/VF/IOP/OCT/RNFL/GCIPL)",
+                "Lipid Profile (TC/HDL/LDL/VLDL/TG)", "Other",
+              ]}
+              values={formData.investigations}
+              onChange={(v, c) => handleCheckboxArray("investigations", v, c)}
+            />
+            <FieldLabel>If Other, specify</FieldLabel>
+            <TextInput name="investigations_other" value={formData.investigations_other} onChange={handleChange} placeholder="Specify" />
+          </FormSection>
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Provisional Diagnosis
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Provisional Diagnosis">
+          <FormSection>
+            <SectionHeader title="SECTION 21 — Provisional Diagnosis" />
+            <RadioGroup
+              name="provisional_diagnosis"
+              value={formData.provisional_diagnosis}
+              onChange={handleChange}
+              options={[
+                "Migraine", "Tension-type headache", "Cluster / TACs",
+                "Neuralgia", "Secondary headache", "Orofacial pain", "Uncertain",
+              ].map((v) => ({ label: v, value: v }))}
+            />
+            <FieldLabel>Specific subtype</FieldLabel>
+            <TextInput name="specific_subtype" value={formData.specific_subtype} onChange={handleChange} />
+          </FormSection>
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Treatment Plan
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Treatment Plan">
+          <FormSection>
+            <SectionHeader title="SECTION 20 — Medication" />
+
+            {/* Acute */}
+            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Acute Medications</h3>
+            <FieldLabel>Drug Group</FieldLabel>
+            <TextInput name="acute_drug_group" value={formData.acute_drug_group} onChange={handleChange} />
+            <FieldLabel>Drug Name + Route</FieldLabel>
+            <TextInput name="acute_drug_name_route" value={formData.acute_drug_name_route} onChange={handleChange} />
+            <FieldLabel>Time Since Started</FieldLabel>
+            <TextInput name="acute_time_started" value={formData.acute_time_started} onChange={handleChange} />
+            <FieldLabel>Starting Dose</FieldLabel>
+            <TextInput name="acute_starting_dose" value={formData.acute_starting_dose} onChange={handleChange} />
+            <FieldLabel>Final Dose</FieldLabel>
+            <TextInput name="acute_final_dose" value={formData.acute_final_dose} onChange={handleChange} />
+            <FieldLabel>Adverse Effects</FieldLabel>
+            <TextArea name="acute_adverse_effects" value={formData.acute_adverse_effects} onChange={handleChange} rows={2} />
+            <FieldLabel>Tolerance Issues</FieldLabel>
+            <TextArea name="acute_tolerance" value={formData.acute_tolerance} onChange={handleChange} rows={2} />
+            <FieldLabel>Number of Days Used per Month</FieldLabel>
+            <TextInput type="number" name="acute_days_per_month" value={formData.acute_days_per_month} onChange={handleChange} />
+            <FieldLabel>Effectiveness</FieldLabel>
+            <select name="acute_effectiveness" value={formData.acute_effectiveness} onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              <option value="">Select</option>
+              {["Very Effective", "Moderately Effective", "Mildly Effective", "Not Effective"].map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+
+            <hr className="my-4" />
+
+            {/* Preventive */}
+            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Preventive Medications</h3>
+            <FieldLabel>Drug Group</FieldLabel>
+            <TextInput name="preventive_drug_group" value={formData.preventive_drug_group} onChange={handleChange} />
+            <FieldLabel>Drug Name + Route</FieldLabel>
+            <TextInput name="preventive_drug_name_route" value={formData.preventive_drug_name_route} onChange={handleChange} />
+            <FieldLabel>Time Since Started</FieldLabel>
+            <TextInput name="preventive_time_started" value={formData.preventive_time_started} onChange={handleChange} />
+            <FieldLabel>Starting Dose</FieldLabel>
+            <TextInput name="preventive_starting_dose" value={formData.preventive_starting_dose} onChange={handleChange} />
+            <FieldLabel>Final Dose</FieldLabel>
+            <TextInput name="preventive_final_dose" value={formData.preventive_final_dose} onChange={handleChange} />
+            <FieldLabel>Adverse Effects</FieldLabel>
+            <TextArea name="preventive_adverse_effects" value={formData.preventive_adverse_effects} onChange={handleChange} rows={2} />
+            <FieldLabel>Tolerance Issues</FieldLabel>
+            <TextArea name="preventive_tolerance" value={formData.preventive_tolerance} onChange={handleChange} rows={2} />
+            <FieldLabel>Number of Days Used per Month</FieldLabel>
+            <TextInput type="number" name="preventive_days_per_month" value={formData.preventive_days_per_month} onChange={handleChange} />
+            <FieldLabel>Effectiveness</FieldLabel>
+            <select name="preventive_effectiveness" value={formData.preventive_effectiveness} onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              <option value="">Select</option>
+              {["Very Effective", "Moderately Effective", "Mildly Effective", "Not Effective"].map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+
+            <hr className="my-4" />
+
+            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Devices / Nerve Blocks / Botox</h3>
+            <TextArea name="devices_nerve_blocks_botox" value={formData.devices_nerve_blocks_botox} onChange={handleChange}
+              rows={4} placeholder="Describe device therapy, nerve blocks, Botox details..." />
+          </FormSection>
+
+          <FormSection>
+            <SectionHeader title="SECTION 22 — Treatment Plan" />
+            <FieldLabel>Acute medicines prescribed</FieldLabel>
+            <TextArea name="acute_medicines_prescribed" value={formData.acute_medicines_prescribed} onChange={handleChange} rows={3} />
+            <FieldLabel>Preventive medicines prescribed</FieldLabel>
+            <TextArea name="preventive_medicines_prescribed" value={formData.preventive_medicines_prescribed} onChange={handleChange} rows={3} />
+            <FieldLabel>Non-pharmacologic recommendations</FieldLabel>
+            <TextArea name="non_pharmacologic_recommendations" value={formData.non_pharmacologic_recommendations} onChange={handleChange} rows={3} />
+            <FieldLabel>Investigations recommended</FieldLabel>
+            <TextArea name="investigations_recommended" value={formData.investigations_recommended} onChange={handleChange} rows={3} />
+          </FormSection>
+        </SuperSection>
+
+        {/* ═══════════════════════════════════════════════════════
+            SUPER SECTION — Follow-up & Patient Instructions
+        ════════════════════════════════════════════════════════ */}
+        <SuperSection title="Follow-up & Patient Instructions">
+          <FormSection>
+            <SectionHeader title="SECTION 23 — Patient Instructions" />
+            <TextArea name="patient_instructions" value={formData.patient_instructions} onChange={handleChange} rows={4} />
+          </FormSection>
+        </SuperSection>
+
+        {/* Submit */}
+        <div className="text-center mt-8 mb-12 space-y-3">
+          {!submitted ? (
+            <button type="submit"
+              className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
+              Submit Form
+            </button>
+          ) : (
+            <button type="button" onClick={handleNewForm}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
+              New Form
+            </button>
+          )}
+          {statusMsg && (
+            <p className="text-green-700 font-medium text-sm">{statusMsg}</p>
+          )}
+        </div>
+      </form>
+    </div>
+  );
 }

@@ -33,9 +33,9 @@ export default function Home() {
           Patient experience
         </div>
 
-        <div className="card red bg-linear-to-br from-[#ff416c] to-[#ff4b2b] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+        <Link href="/patients" className="card red bg-linear-to-br from-[#ff416c] to-[#ff4b2b] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
           Link to patient tab (excel and coding)
-        </div>
+        </Link>
 
         <div className="card pink bg-linear-to-br from-[#ff9a9e] to-[#fad0c4] p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
           COMBAT diagnostic algorithm
@@ -49,9 +49,9 @@ export default function Home() {
           Graphs and trends
         </div>
 
-        <div className="card slate bg-linear-to-br from-[#008bff] to-[#008ffa] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
+        <Link href="/patients" className="card slate bg-linear-to-br from-[#008bff] to-[#008ffa] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
           Patient information Tab
-        </div>
+        </Link>
 
         <div className="card purple bg-linear-to-br from-[#8e2de2] to-[#4a00e0] text-white p-7 rounded-2xl text-lg font-bold text-center cursor-pointer shadow-lg hover:-translate-y-1 transition-transform">
           Online migraine parameter recording

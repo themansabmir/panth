@@ -159,13 +159,22 @@ const PatientSchema = new Schema({
     gait_assessment: String,
 
     // Section 17: Diagnosis
-    primary_diagnosis: [String], // ICHD-3 Checklist
+    diagnosis: [String], // ICHD-3 Checklist
     secondary_headaches: String,
     cranial_neuropathies: String,
     appendix_criteria: String,
+    // Secondary Headache Specifications
+    specify_5: String,
+    specify_6: String,
+    specify_7: String,
+    specify_8: String,
+    specify_9: String,
+    specify_10: String,
+    specify_11: String,
+    specify_12: String,
+    appendix_specify: String,
 
     // Section 18 / Scales (from super-section "Scales")
-    // Assuming these are text inputs
     hit6_score: String,
     midas_score: String,
     phq9_score: String,
@@ -174,12 +183,32 @@ const PatientSchema = new Schema({
 
     // Section 19: Investigations
     investigations: [String], // Checkboxes
+    investigations_other: String,
 
-    // Section 20: Medication (from Treatment Plan super-section, assuming Section 20 label)
-    // Wait, lines 787 says "SECTION 20 — Medication", but inputs are textreas.
-    acute_medications: String,
-    preventive_medications: String,
-    devices_procedures: String,
+    // Section 20: Medication (Structured)
+    acute_meds: [{
+        drug_group: String,
+        drug_name_route: String,
+        time_started: String,
+        starting_dose: String,
+        final_dose: String,
+        adverse_effects: String,
+        tolerance: String,
+        days_per_month: Number,
+        effectiveness: String,
+    }],
+    preventive_meds: [{
+        drug_group: String,
+        drug_name_route: String,
+        time_started: String,
+        starting_dose: String,
+        final_dose: String,
+        adverse_effects: String,
+        tolerance: String,
+        days_per_month: Number,
+        effectiveness: String,
+    }],
+    devices_nerve_blocks_botox: String,
 
     // Section 21: Provisional Diagnosis
     provisional_diagnosis: String,
