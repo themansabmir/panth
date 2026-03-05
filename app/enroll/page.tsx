@@ -1,7 +1,8 @@
 "use client";
+import AutofillModal from "../../components/AutoFillModal";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 
@@ -378,6 +379,8 @@ function HeadacheRegistryFormContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   // Controlled input for the "Load Patient" search bar
   const [lookupId, setLookupId] = useState("");
+  const router = useRouter();
+  const [showAutofill, setShowAutofill] = useState(false);
 
   // Read ?id= from URL and auto-load on mount
   const searchParams = useSearchParams();
@@ -483,6 +486,47 @@ function HeadacheRegistryFormContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleAutofill = (extracted: Record<string, unknown>) => {
+    setFormData((prev) => {
+      const next = { ...prev };
+
+      for (const [key, val] of Object.entries(extracted)) {
+        if (!(key in next)) continue; // ignore unknown keys
+
+        const existing = next[key as keyof typeof next];
+
+        // Array fields — merge with existing selections, deduplicate
+        if (Array.isArray(existing) && Array.isArray(val)) {
+          (next as Record<string, unknown>)[key] = [
+            ...new Set([...existing, ...(val as string[])]),
+          ];
+          continue;
+        }
+
+        // Boolean fields
+        if (typeof existing === "boolean" && typeof val === "boolean") {
+          (next as Record<string, unknown>)[key] = val;
+          continue;
+        }
+
+        // String fields — only overwrite if the field is currently empty
+        if (typeof existing === "string" && typeof val === "string" && existing === "") {
+          (next as Record<string, unknown>)[key] = val;
+          continue;
+        }
+
+        // String fields — overwrite even if filled (you can change this policy)
+        if (typeof existing === "string" && typeof val === "string") {
+          (next as Record<string, unknown>)[key] = val;
+          continue;
+        }
+      }
+
+      return next;
+    });
+  };
+
 
   // Auto-load when navigated here with ?id=
   useEffect(() => {
@@ -607,6 +651,9 @@ function HeadacheRegistryFormContent() {
       } else {
         setStatusMsg(`Error: ${result.error}`);
       }
+      setTimeout(() => {
+        router.push("/patients");
+      }, 1000);
     } catch (err) {
       console.error(err);
       setStatusMsg("A network error occurred. Please try again.");
@@ -622,6 +669,15 @@ function HeadacheRegistryFormContent() {
     setEditingId(null);
     setLookupId("");
   };
+
+  const handleCancel = () => {
+    if (editingId) {
+      router.push("/patients");
+    } else {
+      handleNewForm();
+    }
+  };
+
 
   // ── Autonomic symptom rows
   const autonomicRows: { label: string; field: keyof FormData }[] = [
@@ -653,7 +709,7 @@ function HeadacheRegistryFormContent() {
         <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline mb-3">
           ← Patient List
         </Link>
-        <div className="flex gap-2 items-center bg-white border border-blue-200 rounded-lg px-4 py-3 shadow-sm">
+        {/* <div className="flex gap-2 items-center bg-white border border-blue-200 rounded-lg px-4 py-3 shadow-sm">
           <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Load patient by ID:</span>
           <input
             type="text"
@@ -671,7 +727,7 @@ function HeadacheRegistryFormContent() {
           >
             {isLoading ? "Loading…" : "Load"}
           </button>
-        </div>
+        </div> */}
 
         {/* Editing banner */}
         {editingId && (
@@ -682,6 +738,35 @@ function HeadacheRegistryFormContent() {
           </div>
         )}
       </div>
+
+      <>
+        {/* Floating Autofill trigger button */}
+        <div className="max-w-5xl mx-auto px-4 pt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowAutofill(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-lg transition"
+          >
+            {/* Sparkle icon */}
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z" />
+            </svg>
+            Autofill from Image
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+          {/* ... all existing SuperSection children stay exactly as they are ... */}
+        </form>
+
+        {/* Autofill modal — rendered outside the form to avoid nesting issues */}
+        {showAutofill && (
+          <AutofillModal
+            onAutofill={handleAutofill}
+            onClose={() => setShowAutofill(false)}
+          />
+        )}
+      </>
 
       <form onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 py-4 space-y-4">
 
@@ -1443,9 +1528,9 @@ function HeadacheRegistryFormContent() {
           </FormSection>
         </SuperSection>
 
-        {/* Submit */}
+        {/* Submit / Actions */}
         <div className="text-center mt-8 mb-12 space-y-3">
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             {!submitted ? (
               <button
                 type="submit"
@@ -1460,13 +1545,30 @@ function HeadacheRegistryFormContent() {
                 New Form
               </button>
             )}
-            {/* Always show a "New Form" escape hatch while editing, even before submit */}
+
+            {/* Download PDF — only when editing an existing patient */}
+            {editingId && (
+              <a
+                href={`/api/enroll/${editingId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM12 17l-4-4h2.5v-3h3v3H16l-4 4z" />
+                </svg>
+                Download PDF
+              </a>
+            )}
+
+            {/* Cancel — goes back to patient list when editing */}
             {editingId && !submitted && (
-              <button type="button" onClick={handleNewForm}
+              <button type="button" onClick={handleCancel}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg shadow transition">
                 Cancel
               </button>
             )}
+
           </div>
           {statusMsg && (
             <p className={`font-medium text-sm ${statusMsg.startsWith("Error") || statusMsg.startsWith("Patient not found") || statusMsg.startsWith("A network") ? "text-red-600" : "text-green-700"}`}>
@@ -1474,6 +1576,7 @@ function HeadacheRegistryFormContent() {
             </p>
           )}
         </div>
+
 
       </form>
     </div>
