@@ -257,13 +257,13 @@ const initialState: FormData = {
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 const SectionHeader = ({ title }: { title: string }) => (
-  <h3 className="text-base font-semibold text-blue-800 border-b border-blue-200 pb-1 mb-4 mt-2">
+  <h3 className="text-base font-semibold text-[var(--primary)] border-b border-[var(--border)] pb-1 mb-4 mt-2">
     {title}
   </h3>
 );
 
 const FieldLabel = ({ children, bold }: { children: React.ReactNode; bold?: boolean }) => (
-  <label className={`block text-sm mt-3 mb-1 ${bold ? "font-semibold" : "font-medium"} text-gray-700`}>
+  <label className={`block text-sm mt-3 mb-1 ${bold ? "font-semibold" : "font-medium"} text-[var(--foreground)]`}>
     {children}
   </label>
 );
@@ -277,7 +277,7 @@ const TextInput = ({
   <input
     type={type} name={name} value={value} onChange={onChange}
     placeholder={placeholder} required={required}
-    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+    className="w-full border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
   />
 );
 
@@ -289,7 +289,7 @@ const TextArea = ({
 }) => (
   <textarea
     name={name} value={value} onChange={onChange} rows={rows} placeholder={placeholder}
-    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+    className="w-full border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
   />
 );
 
@@ -350,22 +350,22 @@ interface SuperSectionProps {
 const SuperSection = ({ title, children, defaultOpen = true }: SuperSectionProps) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-gray-300 rounded-lg mb-4 overflow-hidden">
+    <div className="border border-[var(--border)] rounded-lg mb-4 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="w-full flex justify-between items-center px-5 py-3 bg-blue-700 text-white font-semibold text-left"
+        className="w-full flex justify-between items-center px-5 py-3 bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold text-left"
       >
         <span>{title}</span>
         <span className="text-lg">{open ? "▲" : "▼"}</span>
       </button>
-      {open && <div className="p-5 bg-white space-y-6">{children}</div>}
+      {open && <div className="p-5 bg-[var(--card)] space-y-6">{children}</div>}
     </div>
   );
 };
 
 const FormSection = ({ children }: { children: React.ReactNode }) => (
-  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">{children}</div>
+  <div className="border border-[var(--border)] rounded-md p-4 bg-[var(--muted)]">{children}</div>
 );
 
 // ─── Main Component (inner — uses useSearchParams) ───────────────────────────
@@ -692,49 +692,22 @@ function HeadacheRegistryFormContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-blue-800 text-white px-6 py-4 flex items-center gap-4 shadow">
-        <div className="w-12 h-12 rounded-full bg-white text-blue-800 font-bold text-xl flex items-center justify-center">
-          HR
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Headache Registry</h1>
-          <p className="text-sm text-blue-200">Patient Enrollment Form</p>
-        </div>
-      </header>
-
+    <div className="p-6 lg:p-8 min-h-full">
       {/* ── Back link + Load patient bar ── */}
-      <div className="max-w-5xl mx-auto px-4 pt-5">
-        <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline mb-3">
-          ← Patient List
-        </Link>
-        {/* <div className="flex gap-2 items-center bg-white border border-blue-200 rounded-lg px-4 py-3 shadow-sm">
-          <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Load patient by ID:</span>
-          <input
-            type="text"
-            value={lookupId}
-            onChange={(e) => setLookupId(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchPatientManual(lookupId)}
-            placeholder="Paste MongoDB _id here…"
-            className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <button
-            type="button"
-            onClick={() => fetchPatientManual(lookupId)}
-            disabled={isLoading || !lookupId.trim()}
-            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 rounded transition"
-          >
-            {isLoading ? "Loading…" : "Load"}
-          </button>
-        </div> */}
+      <div className="max-w-5xl mx-auto px-4 pt-5 text-[var(--foreground)]">
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-[var(--primary)] hover:opacity-80 font-medium">
+            ← Back to Patient List
+          </Link>
+          <h2 className="text-xl font-bold">Enrollment Form</h2>
+        </div>
 
         {/* Editing banner */}
         {editingId && (
-          <div className="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-lg px-4 py-2">
+          <div className="mt-2 flex items-center gap-2 bg-[var(--data)]/10 border border-[var(--data)]/20 text-[var(--data)] text-sm rounded-lg px-4 py-2">
             <span className="font-semibold">✏️ Editing patient</span>
-            <code className="font-mono text-xs bg-amber-100 px-2 py-0.5 rounded">{editingId}</code>
-            <span className="ml-auto text-xs text-amber-600">Submit will update this record.</span>
+            <code className="font-mono text-xs bg-[var(--data)]/20 px-2 py-0.5 rounded">{editingId}</code>
+            <span className="ml-auto text-xs opacity-80">Submit will update this record.</span>
           </div>
         )}
       </div>
@@ -745,7 +718,7 @@ function HeadacheRegistryFormContent() {
           <button
             type="button"
             onClick={() => setShowAutofill(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-lg transition"
+            className="flex items-center gap-2 bg-[var(--action)] hover:opacity-90 text-[var(--action-foreground)] text-sm font-semibold px-5 py-2.5 rounded-full shadow-lg transition"
           >
             {/* Sparkle icon */}
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -980,21 +953,21 @@ function HeadacheRegistryFormContent() {
 
             <FieldLabel bold>Autonomic symptoms</FieldLabel>
             <div className="overflow-x-auto mt-2">
-              <table className="w-full text-sm border border-gray-300 text-center">
-                <thead className="bg-blue-100">
+              <table className="w-full text-sm border border-[var(--border)] text-center">
+                <thead className="bg-[var(--muted)] text-[var(--foreground)]">
                   <tr>
-                    <th className="border border-gray-300 p-2 text-left">Symptom</th>
-                    <th className="border border-gray-300 p-2">None</th>
-                    <th className="border border-gray-300 p-2">Bilateral</th>
-                    <th className="border border-gray-300 p-2">Unilateral</th>
+                    <th className="border border-[var(--border)] p-2 text-left">Symptom</th>
+                    <th className="border border-[var(--border)] p-2">None</th>
+                    <th className="border border-[var(--border)] p-2">Bilateral</th>
+                    <th className="border border-[var(--border)] p-2">Unilateral</th>
                   </tr>
                 </thead>
                 <tbody>
                   {autonomicRows.map(({ label, field }) => (
-                    <tr key={field} className="even:bg-gray-50">
-                      <td className="border border-gray-300 p-2 text-left">{label}</td>
+                    <tr key={field} className="even:bg-[var(--muted)]">
+                      <td className="border border-[var(--border)] p-2 text-left">{label}</td>
                       {["None", "Bilateral", "Unilateral"].map((opt) => (
-                        <td key={opt} className="border border-gray-300 p-2">
+                        <td key={opt} className="border border-[var(--border)] p-2">
                           <input type="radio" name={field} value={opt}
                             checked={formData[field] === opt}
                             onChange={handleChange} />
@@ -1115,20 +1088,20 @@ function HeadacheRegistryFormContent() {
             <SectionHeader title="SECTION 14 — Red Flags" />
             <FieldLabel bold>Red flags present? (Tick all that apply)</FieldLabel>
 
-            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Onset</p>
+            <p className="text-xs font-semibold text-[var(--muted-foreground)] mt-3 mb-1 uppercase">Onset</p>
             <SingleCheckbox name="rf_onset_thunderclap" checked={formData.rf_onset_thunderclap} onChange={handleCheckboxBool} label='Sudden onset "thunderclap" headache' />
             <SingleCheckbox name="rf_onset_progressive" checked={formData.rf_onset_progressive} onChange={handleCheckboxBool} label="Subacute onset with progressive course" />
             <SingleCheckbox name="rf_onset_after_50" checked={formData.rf_onset_after_50} onChange={handleCheckboxBool} label="New headache after age 50" />
             <SingleCheckbox name="rf_onset_pregnancy" checked={formData.rf_onset_pregnancy} onChange={handleCheckboxBool} label="New onset headache during or just after pregnancy" />
 
-            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Clinical characteristics</p>
+            <p className="text-xs font-semibold text-[var(--muted-foreground)] mt-3 mb-1 uppercase">Clinical characteristics</p>
             <SingleCheckbox name="rf_worst_headache" checked={formData.rf_worst_headache} onChange={handleCheckboxBool} label="Worst headache ever" />
             <SingleCheckbox name="rf_freq_increase" checked={formData.rf_freq_increase} onChange={handleCheckboxBool} label="Recent increase in frequency (>2× baseline in last 3 months)" />
             <SingleCheckbox name="rf_severity_increase" checked={formData.rf_severity_increase} onChange={handleCheckboxBool} label="Recent increase in severity (>5 on VAS compared to baseline)" />
             <SingleCheckbox name="rf_exertion_trigger" checked={formData.rf_exertion_trigger} onChange={handleCheckboxBool} label="Headache triggered only by exertion, coughing or Valsalva" />
             <SingleCheckbox name="rf_sexual_activity" checked={formData.rf_sexual_activity} onChange={handleCheckboxBool} label="Headache triggered by sexual activity" />
 
-            <p className="text-xs font-semibold text-gray-500 mt-3 mb-1 uppercase">Associations</p>
+            <p className="text-xs font-semibold text-[var(--muted-foreground)] mt-3 mb-1 uppercase">Associations</p>
             <SingleCheckbox name="rf_fever" checked={formData.rf_fever} onChange={handleCheckboxBool} label="Headache with fever" />
             <SingleCheckbox name="rf_seizure" checked={formData.rf_seizure} onChange={handleCheckboxBool} label="Headache with seizure" />
             <SingleCheckbox name="rf_neurological_deficit" checked={formData.rf_neurological_deficit} onChange={handleCheckboxBool} label="Neurological deficits" />
@@ -1178,7 +1151,7 @@ function HeadacheRegistryFormContent() {
                 <TextArea name={f} value={formData[f] as string} onChange={handleChange} />
               </div>
             ))}
-            <p className="font-semibold text-sm mt-4 mb-1 text-gray-700">CNS Examination</p>
+            <p className="font-semibold text-sm mt-4 mb-1 text-[var(--foreground)]">CNS Examination</p>
             {(
               [
                 ["higher_mental_functions", "Higher mental functions"],
@@ -1204,9 +1177,9 @@ function HeadacheRegistryFormContent() {
             <SectionHeader title="SECTION 17 — Overall Diagnostic Group Checklist (ICHD-3)" />
 
             {/* Part 1 — Primary */}
-            <h4 className="font-bold text-sm text-gray-800 mt-3 mb-2">PART 1 — Primary Headaches</h4>
+            <h4 className="font-bold text-sm text-[var(--foreground)] mt-3 mb-2">PART 1 — Primary Headaches</h4>
 
-            <p className="text-xs font-semibold text-blue-700 mb-1">1. Migraine</p>
+            <p className="text-xs font-semibold text-[var(--primary)] mb-1">1. Migraine</p>
             {[
               "1.1 Migraine without aura",
               "1.2 Migraine with aura",
@@ -1236,7 +1209,7 @@ function HeadacheRegistryFormContent() {
               </label>
             ))}
 
-            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">2. Tension-Type Headache</p>
+            <p className="text-xs font-semibold text-[var(--primary)] mt-3 mb-1">2. Tension-Type Headache</p>
             {[
               "2.1 Infrequent episodic tension-type headache",
               "2.2 Frequent episodic tension-type headache",
@@ -1251,7 +1224,7 @@ function HeadacheRegistryFormContent() {
               </label>
             ))}
 
-            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">3. Trigeminal Autonomic Cephalalgias (TACs)</p>
+            <p className="text-xs font-semibold text-[var(--primary)] mt-3 mb-1">3. Trigeminal Autonomic Cephalalgias (TACs)</p>
             {[
               "3.1 Cluster Headache",
               "3.1.1 Episodic Cluster Headache",
@@ -1283,7 +1256,7 @@ function HeadacheRegistryFormContent() {
               </label>
             ))}
 
-            <p className="text-xs font-semibold text-blue-700 mt-3 mb-1">4. Other Primary Headache Disorders</p>
+            <p className="text-xs font-semibold text-[var(--primary)] mt-3 mb-1">4. Other Primary Headache Disorders</p>
             {[
               "4.1 Primary cough headache",
               "4.2 Primary exercise headache",
@@ -1305,7 +1278,7 @@ function HeadacheRegistryFormContent() {
             ))}
 
             {/* Part 2 — Secondary */}
-            <h4 className="font-bold text-sm text-gray-800 mt-5 mb-2">PART 2: Secondary Headaches</h4>
+            <h4 className="font-bold text-sm text-[var(--foreground)] mt-5 mb-2">PART 2: Secondary Headaches</h4>
             {(
               [
                 ["5 Headache attributed to trauma or injury to the head and/or neck", "specify_5"],
@@ -1333,7 +1306,7 @@ function HeadacheRegistryFormContent() {
             <TextArea name="comments" value={formData.comments} onChange={handleChange} rows={3} />
 
             {/* Part 3 */}
-            <h4 className="font-bold text-sm text-gray-800 mt-5 mb-2">PART 3: Painful Cranial Neuropathies, Other Facial Pain and Other Headaches</h4>
+            <h4 className="font-bold text-sm text-[var(--foreground)] mt-5 mb-2">PART 3: Painful Cranial Neuropathies, Other Facial Pain and Other Headaches</h4>
             {[
               "13.1 Pain attributed to lesion of trigeminal nerve",
               "13.1.1 Trigeminal neuralgia",
@@ -1443,7 +1416,7 @@ function HeadacheRegistryFormContent() {
             <SectionHeader title="SECTION 20 — Medication" />
 
             {/* Acute */}
-            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Acute Medications</h3>
+            <h3 className="font-bold text-sm text-[var(--foreground)] mt-2 mb-2">Acute Medications</h3>
             <FieldLabel>Drug Group</FieldLabel>
             <TextInput name="acute_drug_group" value={formData.acute_drug_group} onChange={handleChange} />
             <FieldLabel>Drug Name + Route</FieldLabel>
@@ -1462,7 +1435,7 @@ function HeadacheRegistryFormContent() {
             <TextInput type="number" name="acute_days_per_month" value={formData.acute_days_per_month} onChange={handleChange} />
             <FieldLabel>Effectiveness</FieldLabel>
             <select name="acute_effectiveness" value={formData.acute_effectiveness} onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              className="w-full border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
               <option value="">Select</option>
               {["Very Effective", "Moderately Effective", "Mildly Effective", "Not Effective"].map((o) => (
                 <option key={o} value={o}>{o}</option>
@@ -1472,7 +1445,7 @@ function HeadacheRegistryFormContent() {
             <hr className="my-4" />
 
             {/* Preventive */}
-            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Preventive Medications</h3>
+            <h3 className="font-bold text-sm text-[var(--foreground)] mt-2 mb-2">Preventive Medications</h3>
             <FieldLabel>Drug Group</FieldLabel>
             <TextInput name="preventive_drug_group" value={formData.preventive_drug_group} onChange={handleChange} />
             <FieldLabel>Drug Name + Route</FieldLabel>
@@ -1491,7 +1464,7 @@ function HeadacheRegistryFormContent() {
             <TextInput type="number" name="preventive_days_per_month" value={formData.preventive_days_per_month} onChange={handleChange} />
             <FieldLabel>Effectiveness</FieldLabel>
             <select name="preventive_effectiveness" value={formData.preventive_effectiveness} onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              className="w-full border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
               <option value="">Select</option>
               {["Very Effective", "Moderately Effective", "Mildly Effective", "Not Effective"].map((o) => (
                 <option key={o} value={o}>{o}</option>
@@ -1500,7 +1473,7 @@ function HeadacheRegistryFormContent() {
 
             <hr className="my-4" />
 
-            <h3 className="font-bold text-sm text-gray-800 mt-2 mb-2">Devices / Nerve Blocks / Botox</h3>
+            <h3 className="font-bold text-sm text-[var(--foreground)] mt-2 mb-2">Devices / Nerve Blocks / Botox</h3>
             <TextArea name="devices_nerve_blocks_botox" value={formData.devices_nerve_blocks_botox} onChange={handleChange}
               rows={4} placeholder="Describe device therapy, nerve blocks, Botox details..." />
           </FormSection>
@@ -1535,13 +1508,13 @@ function HeadacheRegistryFormContent() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-10 py-3 rounded-lg shadow transition"
+                className="bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-[var(--primary-foreground)] font-semibold px-10 py-3 rounded-lg shadow transition"
               >
                 {isLoading ? "Saving…" : editingId ? "Update Patient" : "Submit Form"}
               </button>
             ) : (
               <button type="button" onClick={handleNewForm}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-3 rounded-lg shadow transition">
+                className="bg-[var(--action)] hover:opacity-90 text-[var(--action-foreground)] font-semibold px-10 py-3 rounded-lg shadow transition">
                 New Form
               </button>
             )}
@@ -1552,7 +1525,7 @@ function HeadacheRegistryFormContent() {
                 href={`/api/enroll/${editingId}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+                className="inline-flex items-center gap-2 outline outline-red-600 outline-1 text-red-600 hover:bg-red-500/10 font-semibold px-6 py-3 rounded-lg shadow transition"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM12 17l-4-4h2.5v-3h3v3H16l-4 4z" />
@@ -1564,14 +1537,14 @@ function HeadacheRegistryFormContent() {
             {/* Cancel — goes back to patient list when editing */}
             {editingId && !submitted && (
               <button type="button" onClick={handleCancel}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg shadow transition">
+                className="bg-[var(--muted)] hover:opacity-90 text-[var(--muted-foreground)] border border-[var(--border)] font-semibold px-6 py-3 rounded-lg shadow transition">
                 Cancel
               </button>
             )}
 
           </div>
           {statusMsg && (
-            <p className={`font-medium text-sm ${statusMsg.startsWith("Error") || statusMsg.startsWith("Patient not found") || statusMsg.startsWith("A network") ? "text-red-600" : "text-green-700"}`}>
+            <p className={`font-medium text-sm ${statusMsg.startsWith("Error") || statusMsg.startsWith("Patient not found") || statusMsg.startsWith("A network") ? "text-red-600" : "text-[var(--action)]"}`}>
               {statusMsg}
             </p>
           )}
@@ -1588,7 +1561,7 @@ function HeadacheRegistryFormContent() {
 export default function HeadacheRegistryForm() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+      <div className="min-h-screen flex items-center justify-center text-[var(--muted-foreground)] text-sm">
         Loading form…
       </div>
     }>

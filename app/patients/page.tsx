@@ -89,32 +89,23 @@ function PatientsTableContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-blue-800 text-white px-6 py-4 flex items-center justify-between shadow">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white text-blue-800 font-bold text-base flex items-center justify-center">
-                        HR
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold">Headache Registry</h1>
-                        <p className="text-xs text-blue-200">Patient List</p>
-                    </div>
+        <div className="p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Header / Actions */}
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">Patient Directory</h2>
+                    <Link
+                        href="/enroll"
+                        className="bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-semibold px-5 py-2.5 rounded-lg hover:opacity-90 transition shadow-sm flex items-center gap-2"
+                    >
+                        + New Enrollment
+                    </Link>
                 </div>
-                <Link
-                    href="/enroll"
-                    className="bg-white text-blue-800 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-50 transition"
-                >
-                    + New Enrolment
-                </Link>
-            </header>
 
-            <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* Toolbar */}
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-800">All Patients</h2>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[var(--muted-foreground)]">
                             {isLoading
                                 ? "Loading…"
                                 : `${pagination.total} total · page ${pagination.page} of ${pagination.totalPages}`}
@@ -127,23 +118,23 @@ function PatientsTableContent() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search name, HCN, diagnosis…"
-                        className="w-full sm:w-80 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="w-full sm:w-80 border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                     />
                 </div>
 
                 {/* Error */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
+                    <div className="bg-red-900/10 border border-red-500/50 text-red-600 rounded-lg px-4 py-3 mb-4 text-sm">
                         {error}
                     </div>
                 )}
 
                 {/* Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-[var(--card)] text-[var(--card-foreground)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-blue-700 text-white text-left">
+                                <tr className="bg-[var(--primary)] text-[var(--primary-foreground)] text-left">
                                     <th className="px-4 py-3 font-semibold whitespace-nowrap">#</th>
                                     <th className="px-4 py-3 font-semibold whitespace-nowrap">HCN No.</th>
                                     <th className="px-4 py-3 font-semibold whitespace-nowrap">Patient Name</th>
@@ -158,16 +149,16 @@ function PatientsTableContent() {
                             <tbody>
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={9} className="text-center py-16 text-gray-400">
+                                        <td colSpan={9} className="text-center py-16 text-[var(--muted-foreground)]">
                                             <div className="flex flex-col items-center gap-2">
-                                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                                <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                                                 <span>Loading patients…</span>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : filtered.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="text-center py-16 text-gray-400">
+                                        <td colSpan={9} className="text-center py-16 text-[var(--muted-foreground)]">
                                             {search ? "No patients match your search." : "No patients found."}
                                         </td>
                                     </tr>
@@ -177,24 +168,24 @@ function PatientsTableContent() {
                                         return (
                                             <tr
                                                 key={p._id}
-                                                className="border-t border-gray-100 hover:bg-blue-50 transition-colors"
+                                                className="border-t border-[var(--border)] hover:bg-[var(--muted)] transition-colors"
                                             >
-                                                <td className="px-4 py-3 text-gray-400 text-xs">{rowNum}</td>
-                                                <td className="px-4 py-3 font-mono text-blue-700 font-semibold">
+                                                <td className="px-4 py-3 text-[var(--muted-foreground)] text-xs">{rowNum}</td>
+                                                <td className="px-4 py-3 font-mono text-[var(--action)] font-semibold">
                                                     {p.HCN_Number || "—"}
                                                 </td>
-                                                <td className="px-4 py-3 font-medium text-gray-800">
+                                                <td className="px-4 py-3 font-medium text-[var(--foreground)]">
                                                     {p.patient_name || "—"}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{p.age || "—"}</td>
+                                                <td className="px-4 py-3 text-[var(--muted-foreground)]">{p.age || "—"}</td>
                                                 <td className="px-4 py-3">
                                                     {p.gender ? (
                                                         <span
                                                             className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${p.gender === "Male"
-                                                                    ? "bg-blue-100 text-blue-700"
-                                                                    : p.gender === "Female"
-                                                                        ? "bg-pink-100 text-pink-700"
-                                                                        : "bg-gray-100 text-gray-600"
+                                                                ? "bg-[var(--data)]/10 text-[var(--data)]"
+                                                                : p.gender === "Female"
+                                                                    ? "bg-[var(--action)]/10 text-[var(--action)]"
+                                                                    : "bg-[var(--muted)] text-[var(--muted-foreground)]"
                                                                 }`}
                                                         >
                                                             {p.gender}
@@ -203,17 +194,17 @@ function PatientsTableContent() {
                                                         "—"
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate" title={p.provisional_diagnosis}>
+                                                <td className="px-4 py-3 text-[var(--muted-foreground)] max-w-[180px] truncate" title={p.provisional_diagnosis}>
                                                     {p.provisional_diagnosis || "—"}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                                                <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
                                                     {formatDate(p.date_of_first_assessment)}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-500">{p.phone_number || "—"}</td>
+                                                <td className="px-4 py-3 text-[var(--muted-foreground)]">{p.phone_number || "—"}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <Link
                                                         href={`/enroll?id=${p._id}`}
-                                                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                                                        className="inline-block bg-[var(--action)] hover:opacity-90 text-[var(--action-foreground)] text-xs font-semibold px-3 py-1.5 rounded-lg transition"
                                                     >
                                                         View / Edit
                                                     </Link>
@@ -228,8 +219,8 @@ function PatientsTableContent() {
 
                     {/* Pagination footer */}
                     {!isLoading && pagination.totalPages > 1 && (
-                        <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between bg-gray-50">
-                            <p className="text-xs text-gray-500">
+                        <div className="border-t border-[var(--border)] px-4 py-3 flex items-center justify-between bg-[var(--muted)]">
+                            <p className="text-xs text-[var(--muted-foreground)]">
                                 Showing rows {(currentPage - 1) * 100 + 1}–
                                 {Math.min(currentPage * 100, pagination.total)} of {pagination.total}
                             </p>
@@ -248,7 +239,7 @@ function PatientsTableContent() {
                                 {/* Page number pills */}
                                 {buildPageRange(currentPage, pagination.totalPages).map((p, i) =>
                                     p === "…" ? (
-                                        <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm">…</span>
+                                        <span key={`ellipsis-${i}`} className="px-2 text-[var(--muted-foreground)] text-sm">…</span>
                                     ) : (
                                         <PaginationButton
                                             key={p}
@@ -291,10 +282,10 @@ function PaginationButton({
             disabled={disabled}
             className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition
         ${active
-                    ? "bg-blue-700 text-white"
+                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                     : disabled
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-600 hover:bg-blue-100 hover:text-blue-700"
+                        ? "text-[var(--muted-foreground)] cursor-not-allowed opacity-50"
+                        : "text-[var(--foreground)] hover:bg-[var(--muted)] hover:text-[var(--primary)]"
                 }`}
         >
             {label}
@@ -320,7 +311,7 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 export default function PatientsPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">
+            <div className="min-h-screen flex items-center justify-center text-[var(--muted-foreground)]">
                 Loading…
             </div>
         }>
