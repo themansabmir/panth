@@ -56,21 +56,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <div className="pt-4 pb-2">
                         {sidebarOpen && <p className="px-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Patients</p>}
                     </div>
-
-                    {/* <Link href="/enroll" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/enroll" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
-                        <ClipboardList className="w-5 h-5 shrink-0" />
-                        {sidebarOpen && <span>Enroll Patient</span>}
-                    </Link> */}
-
                     <Link href="/patients" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/patients" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
                         <Users className="w-5 h-5 shrink-0" />
                         {sidebarOpen && <span>Patient Directory</span>}
                     </Link>
 
-                    {/* <Link href="/records" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/records" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
+                    <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/enroll" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
+                        <ClipboardList className="w-5 h-5 shrink-0" />
+                        {sidebarOpen && <span>Patient Experience</span>}
+                    </Link>
+
+
+                    <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/records" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
                         <FileText className="w-5 h-5 shrink-0" />
-                        {sidebarOpen && <span>Patient Records</span>}
-                    </Link> */}
+                        {sidebarOpen && <span>Audit Tab</span>}
+                    </Link>
+                     <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/records" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}>
+                        <FileText className="w-5 h-5 shrink-0" />
+                        {sidebarOpen && <span>Online Migraine </span>}
+                    </Link>
 
                     <div className="pt-4 pb-2">
                         {sidebarOpen && <p className="px-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analytics</p>}
