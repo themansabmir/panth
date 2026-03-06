@@ -45,7 +45,7 @@ const PatientSchema = new Schema({
     treated_episode_duration: String,
     max_episode_duration: String,
     min_episode_duration: String,
-    headache_days_per_month: Number,
+    headache_days_per_month: String,
     vas_score: Number,
     nrs_category: String,
 

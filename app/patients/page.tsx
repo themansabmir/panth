@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Pagination } from "@/components/pagination";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ function PatientsTableContent() {
 
     const [patients, setPatients] = useState<Patient[]>([]);
     const [pagination, setPagination] = useState<Pagination>({
-        page: 1, limit: 100, total: 0, totalPages: 1,
+        page: 1, limit: 10, total: 0, totalPages: 1,
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -45,7 +46,7 @@ function PatientsTableContent() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch(`/api/enroll?page=${page}&limit=100`);
+            const res = await fetch(`/api/enroll?page=${page}&limit=10`);
             const result = await res.json();
             if (result.success) {
                 setPatients(result.data);
@@ -164,7 +165,7 @@ function PatientsTableContent() {
                                     </tr>
                                 ) : (
                                     filtered.map((p, idx) => {
-                                        const rowNum = (currentPage - 1) * 100 + idx + 1;
+                                        const rowNum = (currentPage - 1) * pagination.limit + idx + 1;
                                         return (
                                             <tr
                                                 key={p._id}
@@ -218,92 +219,19 @@ function PatientsTableContent() {
                     </div>
 
                     {/* Pagination footer */}
-                    {!isLoading && pagination.totalPages > 1 && (
-                        <div className="border-t border-[var(--border)] px-4 py-3 flex items-center justify-between bg-[var(--muted)]">
-                            <p className="text-xs text-[var(--muted-foreground)]">
-                                Showing rows {(currentPage - 1) * 100 + 1}–
-                                {Math.min(currentPage * 100, pagination.total)} of {pagination.total}
-                            </p>
-                            <div className="flex items-center gap-1">
-                                <PaginationButton
-                                    label="«"
-                                    disabled={currentPage === 1}
-                                    onClick={() => goToPage(1)}
-                                />
-                                <PaginationButton
-                                    label="‹"
-                                    disabled={currentPage === 1}
-                                    onClick={() => goToPage(currentPage - 1)}
-                                />
-
-                                {/* Page number pills */}
-                                {buildPageRange(currentPage, pagination.totalPages).map((p, i) =>
-                                    p === "…" ? (
-                                        <span key={`ellipsis-${i}`} className="px-2 text-[var(--muted-foreground)] text-sm">…</span>
-                                    ) : (
-                                        <PaginationButton
-                                            key={p}
-                                            label={String(p)}
-                                            active={p === currentPage}
-                                            onClick={() => goToPage(p as number)}
-                                        />
-                                    )
-                                )}
-
-                                <PaginationButton
-                                    label="›"
-                                    disabled={currentPage === pagination.totalPages}
-                                    onClick={() => goToPage(currentPage + 1)}
-                                />
-                                <PaginationButton
-                                    label="»"
-                                    disabled={currentPage === pagination.totalPages}
-                                    onClick={() => goToPage(pagination.totalPages)}
-                                />
-                            </div>
-                        </div>
+                    {!isLoading && pagination.totalPages > 0 && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={pagination.totalPages}
+                            totalItems={pagination.total}
+                            pageSize={pagination.limit}
+                            onPageChange={goToPage}
+                        />
                     )}
                 </div>
             </div>
         </div>
     );
-}
-
-// ─── Pagination helpers ────────────────────────────────────────────────────────
-
-function PaginationButton({
-    label, onClick, disabled = false, active = false,
-}: {
-    label: string; onClick?: () => void; disabled?: boolean; active?: boolean;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition
-        ${active
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                    : disabled
-                        ? "text-[var(--muted-foreground)] cursor-not-allowed opacity-50"
-                        : "text-[var(--foreground)] hover:bg-[var(--muted)] hover:text-[var(--primary)]"
-                }`}
-        >
-            {label}
-        </button>
-    );
-}
-
-function buildPageRange(current: number, total: number): (number | "…")[] {
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const pages: (number | "…")[] = [];
-    pages.push(1);
-    if (current > 3) pages.push("…");
-    for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
-        pages.push(p);
-    }
-    if (current < total - 2) pages.push("…");
-    pages.push(total);
-    return pages;
 }
 
 // ─── Default export with Suspense (required for useSearchParams) ──────────────

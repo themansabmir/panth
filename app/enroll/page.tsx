@@ -648,12 +648,13 @@ function HeadacheRegistryFormContent() {
       if (result.success) {
         setSubmitted(true);
         setStatusMsg(editingId ? "Patient updated successfully!" : "Form submitted successfully!");
+         setTimeout(() => {
+        router.push("/patients");
+      }, 1000);
       } else {
         setStatusMsg(`Error: ${result.error}`);
       }
-      setTimeout(() => {
-        router.push("/patients");
-      }, 1000);
+     
     } catch (err) {
       console.error(err);
       setStatusMsg("A network error occurred. Please try again.");
